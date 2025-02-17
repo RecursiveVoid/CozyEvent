@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ESNext", // Ensures compatibility with modern JavaScript features
+    "module": "ESNext", // Supports ES module imports/exports
+    "moduleResolution": "Node", // Resolves node modules correctly
+    "esModuleInterop": true, // Enables default imports for commonjs modules
+    "skipLibCheck": true, // Speeds up compilation by skipping lib type checking
+    "strict": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "importHelpers": true,
+    "noEmitHelpers": true
+  }
+}
