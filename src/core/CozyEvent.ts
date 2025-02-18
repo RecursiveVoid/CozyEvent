@@ -1,10 +1,11 @@
 import { EventHandler } from './types/EventHandler';
 
 class CozyEvent {
-  private _events: Map<string, EventHandler[]> = new Map();
+  private _events: Map<string, EventHandler[]>;
 
-  constructor(useMicroTask: boolean = false) {
-    this.emit = useMicroTask ? this._emitAsMicroTask : this._emit;
+  constructor(useMicrotask: boolean = false) {
+    this._events = new Map();
+    this.emit = useMicrotask ? this._emitAsMicrotask : this._emit;
   }
 
   public on(event: string, handler: EventHandler): void {
@@ -36,6 +37,7 @@ class CozyEvent {
       this._events.delete(event);
     } else {
       this._events.clear();
+      this._events = null;
     }
   }
 
@@ -47,7 +49,11 @@ class CozyEvent {
     }
   }
 
-  private _emitAsMicroTask(event: string, ...args: any[]): void {
+  public emitAsync(event: string, ...args: any[]): void {
+    this._emitAsMicrotask(event, ...args)
+  }
+
+  private _emitAsMicrotask(event: string, ...args: any[]): void {
     if (this._events.has(event)) {
       queueMicrotask(() => {
         this._events.get(event)!.forEach((handler) => handler(...args));
