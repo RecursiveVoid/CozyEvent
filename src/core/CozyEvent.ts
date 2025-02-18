@@ -23,7 +23,7 @@
     */
    constructor(useMicrotask: boolean = false) {
      this._events = new Map();
-     this.emit = useMicrotask ? this._emitAsMicrotask : this._emit;
+     this.emit = useMicrotask ? this._emitAsMicrotask : this._emitSync;
    }
  
    /**
@@ -92,7 +92,7 @@
     * @param {string} event - The event name.
     * @param {...any[]} args - Arguments to pass to event handlers.
     */
-   private _emit(event: string, ...args: any[]): void {
+   private _emitSync(event: string, ...args: any[]): void {
      if (this._events.has(event)) {
        this._events.get(event)!.forEach((handler) => handler(...args));
      }
@@ -106,6 +106,15 @@
    public emitAsync(event: string, ...args: any[]): void {
      this._emitAsMicrotask(event, ...args);
    }
+
+  /**
+    * Emits an event synchronously.
+    * @param {string} event - The event name.
+    * @param {...any[]} args - Arguments to pass to event handlers.
+    */
+    public emitSync(event: string, ...args: any[]): void {
+      this._emitSync(event, ...args);
+    }
  
    /**
     * Emits an event asynchronously using microtasks.
