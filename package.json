@@ -1,7 +1,7 @@
 {
   "name": "cozyevent",
-  "version": "0.0.1-placeholder",
-  "description": "Yet another light-weight event emitter",
+  "version": "0.0.1",
+  "description": "A Lightweight, Blazing Fast Microtask Based Async/Sync Event Emitter",
   "main": "dist/index.cjs",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
@@ -24,7 +24,16 @@
     "npm-package",
     "typescript",
     "typescript-library",
-    "typescript-support"
+    "typescript-support",
+    "asynchronous",
+    "async",
+    "bus",
+    "event-bus",
+    "microtask",
+    "task",
+    "cozy",
+    "cozyevent",
+    "cozy-event"
   ],
   "author": "M. Ergin Turk",
   "license": "MIT",
