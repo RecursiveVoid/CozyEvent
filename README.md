@@ -1,4 +1,4 @@
-# CozyEvent — An Event Emitter
+# CozyEvent — A Lightweight Microtask based Async Event Emitter
 More information coming soon. (Place holder)
 ## License
 
