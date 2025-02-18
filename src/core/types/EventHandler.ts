@@ -1,3 +1,4 @@
+// @filename: EventHandler.ts
 /**
  * Represents an event handler function that can accept any number of arguments.
  *

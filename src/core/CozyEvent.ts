@@ -32,7 +32,7 @@ class CozyEvent {
    * @param {EventHandler} handler - The event handler function.
    */
   public on(event: string, handler: EventHandler): void {
-    if (!this._events.has(event)) {
+    if (!this._events?.has(event)) {
       this._events.set(event, []);
     }
     this._events.get(event)!.push(handler);
@@ -57,7 +57,7 @@ class CozyEvent {
    * @param {EventHandler} handler - The event handler function to remove.
    */
   public off(event: string, handler: EventHandler): void {
-    if (this._events.has(event)) {
+    if (this._events?.has(event)) {
       this._events.set(
         event,
         this._events.get(event)!.filter((h) => h !== handler)
@@ -92,7 +92,7 @@ class CozyEvent {
    * @param {...any[]} args - Arguments to pass to event handlers.
    */
   private _emitSync(event: string, ...args: any[]): void {
-    if (this._events.has(event)) {
+    if (this._events?.has(event)) {
       this._events.get(event)!.forEach((handler) => handler(...args));
     }
   }
@@ -122,7 +122,7 @@ class CozyEvent {
    * @param {...any[]} args - Arguments to pass to event handlers.
    */
   private _emitAsMicrotask(event: string, ...args: any[]): void {
-    if (this._events.has(event)) {
+    if (this._events?.has(event)) {
       queueMicrotask(() => {
         this._events.get(event)!.forEach((handler) => handler(...args));
       });
