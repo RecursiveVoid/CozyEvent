@@ -9,6 +9,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "importHelpers": true,
-    "noEmitHelpers": true
+    "noEmitHelpers": true,
+    "strictNullChecks": false,
   }
 }
