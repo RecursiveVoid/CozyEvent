@@ -19,7 +19,7 @@ class CozyEvent {
 
   /**
    * Creates an instance of CozyEvent.
-   * @param {boolean} [useMicrotask=false] - Whether to use microtasks for event emission.
+   * @param {boolean} [useMicrotask=false] - Whether to use microtasks for event emission as default.
    */
   constructor(useMicrotask: boolean = false) {
     this._events = new Map();
