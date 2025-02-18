@@ -74,7 +74,6 @@
        this._events.delete(event);
      } else {
        this._events.clear();
-       this._events = null;
      }
    }
  
@@ -135,6 +134,7 @@
     */
    public destroy(): void {
      this.removeAllListeners();
+     this._events = null;
    }
  }
  
