@@ -2,6 +2,7 @@ import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import typescript from '@rollup/plugin-typescript';
 import dts from 'rollup-plugin-dts';
+import wasm from '@rollup/plugin-wasm';
 
 export default [
   {
@@ -21,6 +22,7 @@ export default [
     plugins: [
       resolve(),
       commonjs(),
+      wasm(), // ✅ Adds WebAssembly support
       typescript({
         tsconfig: './tsconfig.json',
         declaration: true,
