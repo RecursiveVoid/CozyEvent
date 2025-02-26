@@ -1,12 +1,35 @@
 import { EventHandler } from './types/EventHandler';
 
+/**
+ * A simple event emitter class that allows you to register event listeners, emit events, and manage listeners.
+ * It supports both synchronous and asynchronous event handling.
+ *
+ * @example
+ * const eventEmitter = new CozyEvent();
+ * eventEmitter.on('test', (message) => console.log(message));
+ * eventEmitter.emit('test', 'Hello, world!');
+ */
 class CozyEvent {
   private _events: Record<string, EventHandler[]>;
 
+  // The function used to emit events, either synchronously or asynchronously.
   public emit: (event: string, ...args: any[]) => void;
+
+  // The function used to emit events asynchronously.
   public emitAsync: (event: string, ...args: any[]) => void;
+
+  // The function used to emit events synchronously.
   public emitSync: (event: string, ...args: any[]) => void;
 
+  /**
+   * Creates a new CozyEvent instance with the option to choose asynchronous event handling.
+   *
+   * @param useMicrotask - If set to true, events will be emitted using microtasks (asynchronous).
+   * Defaults to false, which means events will be emitted synchronously.
+   *
+   * @example
+   * const eventEmitter = new CozyEvent(true); // Asynchronous event handling
+   */
   constructor(useMicrotask: boolean = false) {
     this._events = Object.create(null);
     this.emit = useMicrotask ? this._emitAsMicrotask : this._emitSync;
@@ -14,6 +37,16 @@ class CozyEvent {
     this.emitSync = this._emitSync;
   }
 
+  /**
+   * Registers an event handler that will be called every time the event is emitted.
+   *
+   * @param event - The name of the event.
+   * @param handler - The callback function to be executed when the event is emitted.
+   *
+   * @example
+   * eventEmitter.on('test', (message) => console.log(message));
+   * eventEmitter.emit('test', 'Hello, world!');
+   */
   public on(event: string, handler: EventHandler): void {
     if (!this._events[event]) {
       this._events[event] = [handler];
@@ -22,6 +55,18 @@ class CozyEvent {
     }
   }
 
+  /**
+   * Registers a one-time event handler that will be triggered only the first time the event is emitted.
+   * After the event handler is called, it will be removed automatically.
+   *
+   * @param event - The name of the event.
+   * @param handler - The callback function to be executed when the event is emitted.
+   *
+   * @example
+   * eventEmitter.once('test', (message) => console.log(message));
+   * eventEmitter.emit('test', 'This will be logged.');
+   * eventEmitter.emit('test', 'This will not be logged.');
+   */
   public once(event: string, handler: EventHandler): void {
     const onceWrapper: EventHandler = (...args) => {
       this.off(event, onceWrapper);
@@ -30,6 +75,17 @@ class CozyEvent {
     this.on(event, onceWrapper);
   }
 
+  /**
+   * Removes a previously registered event handler. If no handler is provided, all handlers for the event are removed.
+   *
+   * @param event - The name of the event.
+   * @param handler - The callback function to be removed (optional).
+   * If omitted, all handlers for the event will be removed.
+   *
+   * @example
+   * eventEmitter.off('test', handler); // Removes a specific handler
+   * eventEmitter.off('test'); // Removes all handlers for 'test' event
+   */
   public off(event: string, handler?: EventHandler): void {
     const handlers = this._events[event];
     if (!handlers) return;
@@ -46,6 +102,16 @@ class CozyEvent {
     }
   }
 
+  /**
+   * Removes all event listeners. Optionally, listeners for a specific event can be removed.
+   *
+   * @param event - The name of the event to remove listeners for (optional).
+   * If omitted, all listeners for all events will be removed.
+   *
+   * @example
+   * eventEmitter.removeAllListeners(); // Removes all listeners
+   * eventEmitter.removeAllListeners('test'); // Removes listeners for the 'test' event
+   */
   public removeAllListeners(event?: string): void {
     if (event) {
       if (this._events[event]) {
@@ -55,6 +121,16 @@ class CozyEvent {
       this._events = Object.create(null);
     }
   }
+
+  /**
+   * Emits an event synchronously, calling all registered handlers with the provided arguments.
+   *
+   * @param event - The name of the event.
+   * @param args - Arguments to pass to the event handlers.
+   *
+   * @example
+   * eventEmitter.emit('test', 'Hello, world!');
+   */
   private _emitSync(event: string, ...args: any[]): void {
     const handlers = this._events[event];
     if (!handlers) return;
@@ -71,6 +147,15 @@ class CozyEvent {
     }
   }
 
+  /**
+   * Emits an event asynchronously using microtasks (next tick).
+   *
+   * @param event - The name of the event.
+   * @param args - Arguments to pass to the event handlers.
+   *
+   * @example
+   * eventEmitter.emitAsync('test', 'Hello, world!');
+   */
   private _emitAsMicrotask(event: string, ...args: any[]): void {
     const handlers = this._events[event];
     if (!handlers) return;
@@ -81,6 +166,13 @@ class CozyEvent {
     });
   }
 
+  /**
+   * Destroys the event emitter and removes all event listeners.
+   * This method can be called when you no longer need the event emitter.
+   *
+   * @example
+   * eventEmitter.destroy();
+   */
   public destroy(): void {
     this.removeAllListeners();
   }
