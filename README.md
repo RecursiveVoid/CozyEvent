@@ -6,6 +6,10 @@
 
 A **lightweight**, **blazing fast**, microtask-based asynchronous and synchronous event emitter for JavaScript/TypeScript.
 
+## Change log
+
+- v1.1.0: Performance improvement; 4x faster than version v1.0
+
 ## Features
 
 - Supports both **synchronous** and **asynchronous (microtask-based)** event emission.
