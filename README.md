@@ -54,12 +54,6 @@ const { CozyEvent } = require('cozyevent');
 const eventEmitter = new CozyEvent();
 ```
 
-You can also enable microtask-based event emission by passing `true` in the constructor:
-
-```typescript
-const asyncEventEmitter = new CozyEvent(true);
-```
-
 ### Registering Event Handlers
 
 #### `on(event: string, handler: EventHandler): void`
@@ -86,23 +80,15 @@ eventEmitter.once('init', () => {
 
 #### `emit(event: string, ...args: any[]): void`
 
-Emits an event. Behavior depends on whether microtask-based emission is enabled.
+Emits a sync event.
 
 ```typescript
 eventEmitter.emit('message', 'Hello, World!');
 ```
 
-#### `emitSync(event: string, ...args: any[]): void`
-
-Forces synchronous event emission.
-
-```typescript
-eventEmitter.emitSync('log', 'Synchronous event!');
-```
-
 #### `emitAsync(event: string, ...args: any[]): void`
 
-Forces asynchronous event emission using microtasks.
+Emits an async event emission using microtasks.
 
 ```typescript
 eventEmitter.emitAsync('data', { id: 1, name: 'John Doe' });

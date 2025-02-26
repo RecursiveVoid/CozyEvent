@@ -12,29 +12,12 @@ import { EventHandler } from './types/EventHandler';
 class CozyEvent {
   private _events: Record<string, EventHandler[]>;
 
-  // The function used to emit events, either synchronously or asynchronously.
-  public emit: (event: string, ...args: any[]) => void;
-
-  // The function used to emit events asynchronously.
-  public emitAsync: (event: string, ...args: any[]) => void;
-
-  // The function used to emit events synchronously.
-  public emitSync: (event: string, ...args: any[]) => void;
-
   /**
    * Creates a new CozyEvent instance with the option to choose asynchronous event handling.
    *
-   * @param useMicrotask - If set to true, events will be emitted using microtasks (asynchronous).
-   * Defaults to false, which means events will be emitted synchronously.
-   *
-   * @example
-   * const eventEmitter = new CozyEvent(true); // Asynchronous event handling
    */
-  constructor(useMicrotask: boolean = false) {
+  constructor() {
     this._events = Object.create(null);
-    this.emit = useMicrotask ? this._emitAsMicrotask : this._emitSync;
-    this.emitAsync = this._emitAsMicrotask;
-    this.emitSync = this._emitSync;
   }
 
   /**
@@ -131,7 +114,7 @@ class CozyEvent {
    * @example
    * eventEmitter.emit('test', 'Hello, world!');
    */
-  private _emitSync(event: string, ...args: any[]): void {
+  public emit(event: string, ...args: any[]): void {
     const handlers = this._events[event];
     if (!handlers) return;
     let i = 0;
@@ -156,7 +139,7 @@ class CozyEvent {
    * @example
    * eventEmitter.emitAsync('test', 'Hello, world!');
    */
-  private _emitAsMicrotask(event: string, ...args: any[]): void {
+  public emitAsync(event: string, ...args: any[]): void {
     const handlers = this._events[event];
     if (!handlers) return;
     queueMicrotask(() => {
