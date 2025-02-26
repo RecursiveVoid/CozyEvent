@@ -1,48 +1,32 @@
-// @filename: CozyEvent.ts
+type EventHandler = (...args: any[]) => void;
 
-/**
- * @import  { EventHandler } from './types/EventHandler'
- */
-
-import { EventHandler } from './types/EventHandler';
-
-/**
- * CozyEvent - A Lightweight, Blazing Fast Microtask Based Async/Sync Event Emitter.
- */
 class CozyEvent {
-  /**
-   * Stores event handlers mapped by event names.
-   * @private
-   * @type {Map<string, EventHandler[]>}
-   */
-  private _events: Map<string, EventHandler[]>;
+  private _events: Record<string, EventHandler | EventHandler[]>;
+  private _eventsCount: number;
 
-  /**
-   * Creates an instance of CozyEvent.
-   * @param {boolean} [useMicrotask=false] - Whether to use microtasks for event emission as default.
-   */
+  // private _eventNames: string[];
+  // private _eventHandlers: EventHandler[];
+
+  private emit: (event: string, ...args: any[]) => void;
+
   constructor(useMicrotask: boolean = false) {
-    this._events = new Map();
+    this._events = Object.create(null);
+    this._eventsCount = 0;
     this.emit = useMicrotask ? this._emitAsMicrotask : this._emitSync;
   }
 
-  /**
-   * Registers an event handler for the specified event.
-   * @param {string} event - The event name.
-   * @param {EventHandler} handler - The event handler function.
-   */
   public on(event: string, handler: EventHandler): void {
-    if (!this._events?.has(event)) {
-      this._events.set(event, []);
+    const evt = this._events[event];
+    if (!evt) {
+      this._events[event] = handler;
+      this._eventsCount++;
+    } else if (typeof evt === 'function') {
+      this._events[event] = [evt, handler];
+    } else {
+      evt.push(handler);
     }
-    this._events.get(event)!.push(handler);
   }
 
-  /**
-   * Registers a one-time event handler for the specified event.
-   * @param {string} event - The event name.
-   * @param {EventHandler} handler - The event handler function.
-   */
   public once(event: string, handler: EventHandler): void {
     const onceWrapper: EventHandler = (...args) => {
       this.off(event, onceWrapper);
@@ -51,90 +35,66 @@ class CozyEvent {
     this.on(event, onceWrapper);
   }
 
-  /**
-   * Removes a specific event handler for the specified event.
-   * @param {string} event - The event name.
-   * @param {EventHandler} handler - The event handler function to remove.
-   */
-  public off(event: string, handler: EventHandler): void {
-    if (this._events?.has(event)) {
-      this._events.set(
-        event,
-        this._events.get(event)!.filter((h) => h !== handler)
-      );
+  public off(event: string, handler?: EventHandler): void {
+    const evt = this._events[event];
+    if (!evt) return;
+    if (!handler) {
+      delete this._events[event];
+      this._eventsCount--;
+    } else if (typeof evt === 'function') {
+      if (evt === handler) {
+        delete this._events[event];
+        this._eventsCount--;
+      }
+    } else {
+      this._events[event] = evt.filter((h) => h !== handler);
+      if (!this._events[event].length) {
+        delete this._events[event];
+        this._eventsCount--;
+      }
     }
   }
 
-  /**
-   * Removes all event listeners for the specified event or all events if no event is specified.
-   * @param {string} [event] - The event name (optional). If omitted, all listeners are removed.
-   */
   public removeAllListeners(event?: string): void {
     if (event) {
-      this._events.delete(event);
+      if (this._events[event]) {
+        delete this._events[event];
+        this._eventsCount--;
+      }
     } else {
-      this._events.clear();
+      this._events = Object.create(null);
+      this._eventsCount = 0;
     }
   }
 
-  /**
-   * Emits an event synchronously.
-   * This method is overridden based on the constructor's `useMicrotask` argument.
-   * @param {string} event - The event name.
-   * @param {...any[]} args - Arguments to pass to event handlers.
-   */
-  public emit(event: string, ...args: any[]): void {}
-
-  /**
-   * Emits an event synchronously.
-   * @private
-   * @param {string} event - The event name.
-   * @param {...any[]} args - Arguments to pass to event handlers.
-   */
   private _emitSync(event: string, ...args: any[]): void {
-    if (this._events?.has(event)) {
-      this._events.get(event)!.forEach((handler) => handler(...args));
+    const evt = this._events[event];
+    if (!evt) return;
+    if (typeof evt === 'function') {
+      evt(...args);
+    } else {
+      for (let i = 0, len = evt.length; i < len; i++) {
+        evt[i](...args);
+      }
     }
   }
 
-  /**
-   * Emits an event asynchronously using microtasks.
-   * @param {string} event - The event name.
-   * @param {...any[]} args - Arguments to pass to event handlers.
-   */
-  public emitAsync(event: string, ...args: any[]): void {
-    this._emitAsMicrotask(event, ...args);
-  }
-
-  /**
-   * Emits an event synchronously.
-   * @param {string} event - The event name.
-   * @param {...any[]} args - Arguments to pass to event handlers.
-   */
-  public emitSync(event: string, ...args: any[]): void {
-    this._emitSync(event, ...args);
-  }
-
-  /**
-   * Emits an event asynchronously using microtasks.
-   * @private
-   * @param {string} event - The event name.
-   * @param {...any[]} args - Arguments to pass to event handlers.
-   */
   private _emitAsMicrotask(event: string, ...args: any[]): void {
-    if (this._events?.has(event)) {
-      queueMicrotask(() => {
-        this._events.get(event)!.forEach((handler) => handler(...args));
-      });
-    }
+    const evt = this._events[event];
+    if (!evt) return;
+    queueMicrotask(() => {
+      if (typeof evt === 'function') {
+        evt(...args);
+      } else {
+        for (let i = 0, len = evt.length; i < len; i++) {
+          evt[i](...args);
+        }
+      }
+    });
   }
 
-  /**
-   * Destroys the event emitter by removing all event listeners.
-   */
   public destroy(): void {
     this.removeAllListeners();
-    this._events = null;
   }
 }
 
