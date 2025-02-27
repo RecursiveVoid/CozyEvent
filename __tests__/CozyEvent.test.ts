@@ -75,12 +75,11 @@ describe('CozyEvent', () => {
   test('should emit syncronously', () => {
     const mockFn = jest.fn();
     emitter.on('event1', mockFn);
-    emitter.emitSync('event1', 'synchronous');
+    emitter.emit('event1', 'synchronous');
     expect(mockFn).toHaveBeenCalledWith('synchronous');
   });
 
   test('should emit asynchronously when configured', async () => {
-    const emitter = new CozyEvent(true);
     const mockFn = jest.fn();
     emitter.on('asyncEvent', mockFn);
     emitter.emitAsync('asyncEvent', 'Hello');
@@ -89,16 +88,14 @@ describe('CozyEvent', () => {
   });
 
   test('should destroy: emitSync should not throw exeption', async () => {
-    const emitter = new CozyEvent(true);
     const mockFn = jest.fn();
     emitter.on('asyncEvent', mockFn);
     emitter.destroy();
-    emitter.emitSync('asyncEvent', 'Oh look at me, look at me');
+    emitter.emit('asyncEvent', 'Oh look at me, look at me');
     expect(mockFn).not.toHaveBeenCalledWith('Oh look at me, look at me');
   });
 
   test('should destroy: emitAsync should not throw exeption', async () => {
-    const emitter = new CozyEvent(true);
     const mockFn = jest.fn();
     emitter.on('asyncEvent', mockFn);
     emitter.destroy();
