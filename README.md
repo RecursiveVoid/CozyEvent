@@ -1,4 +1,4 @@
-![](https://i.imgur.com/knSgxwM.png)
+![](https://i.imgur.com/lU4VqXb.png)
 
 # CozyEvent — Fast, Lightweight Event Emitter
 
