@@ -150,30 +150,49 @@ class CozyEvent {
   }
 
   public observe<T extends object>(obj: T, callback: () => void): T {
+    return this._createReactive(obj, callback, false);
+  }
+
+  public observeAsync<T extends object>(obj: T, callback: () => void): T {
+    return this._createReactive(obj, callback, true);
+  }
+
+  private _createReactive<T extends object>(
+    target: T,
+    callback: () => void,
+    async: boolean
+  ): T {
     const self = this;
 
-    function createReactive(target: any): any {
-      return new Proxy(target, {
+    function __triggerCallback() {
+      if (async) {
+        queueMicrotask(callback);
+      } else {
+        callback();
+      }
+    }
+
+    function __wrapObject(obj: any): any {
+      return new Proxy(obj, {
+        get(target, prop, receiver) {
+          const value = Reflect.get(target, prop, receiver);
+          if (typeof value === 'object' && value !== null) {
+            return __wrapObject(value);
+          }
+          return value;
+        },
         set(target, prop, value) {
           const oldValue = target[prop];
           if (oldValue !== value) {
             target[prop] = value;
-            callback();
+            __triggerCallback();
             self.emit(`observe:${prop.toString()}`, value);
           }
           return true;
         },
-        get(target, prop, receiver) {
-          const value = Reflect.get(target, prop, receiver);
-          if (typeof value === 'object' && value !== null) {
-            return createReactive(value);
-          }
-          return value;
-        },
       });
     }
-
-    return createReactive(obj);
+    return __wrapObject(target);
   }
 
   /**
