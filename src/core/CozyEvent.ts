@@ -149,6 +149,33 @@ class CozyEvent {
     });
   }
 
+  public observe<T extends object>(obj: T, callback: () => void): T {
+    const self = this;
+
+    function createReactive(target: any): any {
+      return new Proxy(target, {
+        set(target, prop, value) {
+          const oldValue = target[prop];
+          if (oldValue !== value) {
+            target[prop] = value;
+            callback();
+            self.emit(`observe:${prop.toString()}`, value);
+          }
+          return true;
+        },
+        get(target, prop, receiver) {
+          const value = Reflect.get(target, prop, receiver);
+          if (typeof value === 'object' && value !== null) {
+            return createReactive(value);
+          }
+          return value;
+        },
+      });
+    }
+
+    return createReactive(obj);
+  }
+
   /**
    * Destroys the event emitter and removes all event listeners.
    * This method can be called when you no longer need the event emitter.
