@@ -2,7 +2,10 @@
 
 # CozyEvent — Fast, Lightweight Event Emitter
 
-![npm](https://img.shields.io/npm/v/cozyevent) ![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen) ![License](https://img.shields.io/github/license/RecursiveVoid/CozyEvent)
+![npm](https://img.shields.io/npm/v/cozyevent)
+[![Build Size](https://img.shields.io/bundlephobia/minzip/cozyevent?label=bundle%20size)](https://bundlephobia.com/result?p=cozyevent)
+![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)
+![License](https://img.shields.io/github/license/RecursiveVoid/CozyEvent)
 [![Downloads](https://img.shields.io/npm/dt/cozyevent.svg?style=flat-square)](https://www.npmjs.com/package/cozyevent)
 [![PRs](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)]()
 [![withlove](https://img.shields.io/badge/made_with-love_<3-ff69b4.svg?style=flat-square)]()
