@@ -1,18 +1,33 @@
 import Benchmark from 'benchmark';
-
 import { CozyEvent } from '../dist/index.esm.js';
- 
 
 const suite = new Benchmark.Suite();
 
 const cozyEvent = new CozyEvent();
 
+// Change this value to test with different amount of emitters
+const emitterAmount = 10;
+
+const callback = () => {};
+const eventname = 'test';
+
+// For comparing other emitters, add them here;
+const emitters = [cozyEvent];
+
+for(let i = 0; i < emitterAmount; i++) {  
+    emitters.forEach(emitter => {
+        emitter.on(eventname, callback);
+    });
+}
+
 suite
-  // Example test implementation
-  .add('CozyEvent: On', function () {
-    cozyEvent.on('test', ()=>{});
+// Example benchmark cases:
+  .add('CozyEvent: Emit', function () {
+    cozyEvent.emit('test', {});
   })
-  // ... Add your tests here
+  .on('start', function (event) {
+    console.log(`${emitterAmount} Listeners:`);
+  })
   .on('cycle', function (event) {
     console.log(String(event.target));
   })
@@ -22,7 +37,7 @@ suite
   .run({ async: true});
 
 
-  /* To test, please first remove the dist folder and run the following commands:
+/* To test, please first remove the dist folder and run the following commands:
    - npm run build
    - npm run benchmark
 
@@ -39,4 +54,3 @@ suite
 
     Once its verified, it will be added to report.txt file in the repository with the credit as author.
   */
-
