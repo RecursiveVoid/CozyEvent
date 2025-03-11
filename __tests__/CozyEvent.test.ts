@@ -7,10 +7,10 @@ describe('CozyEvent', () => {
     emitter = new CozyEvent();
   });
 
-  afterEach(()=> {
-      emitter.destroy();
-      emitter = null;
-  })
+  afterEach(() => {
+    emitter.destroy();
+    emitter = null;
+  });
 
   test('should register and emit an event', () => {
     const mockFn = jest.fn();
@@ -19,18 +19,17 @@ describe('CozyEvent', () => {
     expect(mockFn).toHaveBeenCalledWith('Luke');
   });
 
-  
   test('should register and emit a million event', () => {
+    const oneMillion = 1_000_000;
     let total = 0;
-    emitter.on('testEvent', ()=> {
-        total += 1;
+    emitter.on('testEvent', () => {
+      total += 1;
     });
-    for(let i = 0; i < 1_000_000; i ++) {
-        emitter.emit('testEvent', total);
+    for (let i = 0; i < oneMillion; i++) {
+      emitter.emit('testEvent', total);
     }
-    expect(total).toEqual(1_000_000)
+    expect(total).toEqual(oneMillion);
   });
-
 
   test('should remove an event listener', () => {
     const mockFn = jest.fn();

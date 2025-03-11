@@ -1,0 +1,39 @@
+[1.1.4] General Benchmark comparison with EventEmitter3 (Tested on 11th Gen Intel(R) Core(TM) i9-11950H @2.60GHz) credit: RecursiveVoid 
+    Emit:
+        Single Listener: 
+            CozyEvent: Emit x 73,436,377 ops/sec ±2.10% (90 runs sampled)
+            EventEmitter3: Emit x 75,723,331 ops/sec ±2.30% (86 runs sampled)
+        100 Listener:
+            CozyEvent: Emit x 12,355,506 ops/sec ±0.77% (90 runs sampled)
+            EventEmitter3: Emit x 2,158,329 ops/sec ±1.37% (93 runs sampled)
+        1000 Listener: 
+            CozyEvent: Emit x 1,041,563 ops/sec ±1.18% (92 runs sampled)
+            EventEmitter3: Emit x 190,031 ops/sec ±1.51% (89 runs sampled)
+        10_000 Listener:
+            CozyEvent: Emit x 108,710 ops/sec ±1.13% (91 runs sampled)
+            EventEmitter3: Emit x 18,906 ops/sec ±2.45% (87 runs sampled)
+        100_000 Listener:
+            CozyEvent: Emit x 4,446 ops/sec ±15.79% (84 runs sampled)
+            EventEmitter3: Emit x 1,427 ops/sec ±4.82% (76 runs sampled)
+        1_000_000 Listener: 
+            CozyEvent: Emit x 95.75 ops/sec ±5.86% (62 runs sampled)
+            EventEmitter3: Emit x 67.40 ops/sec ±10.25% (47 runs sampled)
+        10_000_000 Listener:
+            CozyEvent: Emit x 12.45 ops/sec ±2.63% (35 runs sampled)
+            EventEmitter3: Emit x 12.51 ops/sec ±3.39% (35 runs sampled)
+    On:
+        CozyEvent: Register event listener x 6,166,957 ops/sec ±20.06% (54 runs sampled)
+        EventEmitter3: Register event listener x 2,524,413 ops/sec ±50.34% (32 runs sampled)
+    Once: 
+        CozyEvent: Register event listener x 2,964,783 ops/sec ±38.37% (45 runs sampled)
+        EventEmitter3: Register event listener x 1,361,896 ops/sec ±60.59% (20 runs sampled)        
+    RemoveAllListeners:
+        CozyEvent: RemoveAllListeners x 9,945,386 ops/sec ±9.36% (53 runs sampled)
+        EventEmitter3: RemoveAllListeners x 45,471,548 ops/sec ±5.46% (66 runs sampled)
+    Add and Remove one listener: 
+        CozyEvent: RemoveAllListeners x 22,277,019 ops/sec ±3.65% (80 runs sampled)
+        EventEmitter3: RemoveAllListeners x 36,342,979 ops/sec ±9.16% (66 runs sampled)
+
+
+    
+       
