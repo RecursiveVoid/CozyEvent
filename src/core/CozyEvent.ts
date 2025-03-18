@@ -65,8 +65,7 @@ class CozyEvent {
    */
   public emitAsync<T>(event: string, params?: T): void {
     if (!this._events[event]) return;
-
-    Promise.resolve().then(() => {
+    queueMicrotask(() => {
       this._events[event].forEach((callback) => callback(params));
     });
   }
