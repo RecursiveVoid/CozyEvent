@@ -15,7 +15,8 @@ A **lightweight**, **blazing fast**, microtask-based asynchronous and synchronou
 
 ## Change log
 
-- v1.1.0: Performance improvement; 4x faster than version v1.0
+- v.1.2.0: Performance improvement; **22x faster** than v.1.1.0 (see the [benchmark below](#benchmark-results))
+- v1.1.0: Performance improvement; **4x faster** than version v1.0 (see the benchmark bellow)
 
 ## Features
 
@@ -150,6 +151,74 @@ Removes all listeners and cleans up the event emitter.
 ```typescript
 eventEmitter.destroy();
 ```
+
+## Benchmark Results
+
+### `Emit:`
+
+The following are the benchmark results for 1,000,000 listeners (from fastest to slowest):
+
+| Library                     | Operation | Rate (ops/sec) | Variability (%) | Runs Sampled |
+| --------------------------- | --------- | -------------- | --------------- | ------------ |
+| **cozyEvent**               | emit      | 4,095          | ±0.80%          | 94           |
+| **tseep**                   | emit      | 3,587          | ±1.85%          | 91           |
+| **braintree-event-emitter** | emit      | 3,431          | ±3.43%          | 85           |
+| **emitix**                  | emit      | 461            | ±2.41%          | 84           |
+| **eventemitter3**           | emit      | 180            | ±1.89%          | 83           |
+| **eventemitter2**           | emit      | 150            | ±2.45%          | 76           |
+| **node-event-emitter**      | emit      | 120            | ±4.22%          | 70           |
+| **protobufjs-eventemitter** | emit      | 119            | ±0.70%          | 77           |
+| **event-emitter**           | emit      | 91.98          | ±3.25%          | 68           |
+
+### `On:`
+
+| Library                     |   ops/sec | Variability (%) | Runs Sampled |
+| --------------------------- | --------: | --------------: | -----------: |
+| **cozyEvent**               | 7,048,823 |         ±23.01% |           44 |
+| **tseep**                   | 6,699,486 |         ±22.93% |           58 |
+| **eventemitter2**           | 4,759,473 |         ±32.42% |           48 |
+| **eventemitter3**           | 2,760,536 |         ±34.21% |           47 |
+| **braintree-event-emitter** | 2,493,323 |         ±25.56% |           34 |
+| **event-emitter**           | 1,578,055 |         ±29.92% |           35 |
+| **protobufjs-eventemitter** | 1,533,468 |         ±62.37% |           18 |
+| **emitix**                  |   886,668 |         ±65.42% |           20 |
+| **node-event-emitter**      |   116,289 |         ±12.12% |           18 |
+
+### `Once:`
+
+| Library                |   ops/sec | Variability (%) | Runs Sampled |
+| ---------------------- | --------: | --------------: | -----------: |
+| **tseep**              | 7,025,903 |         ±19.21% |           49 |
+| **cozyEvent**          | 3,161,190 |         ±36.82% |           35 |
+| **eventemitter2**      | 2,349,562 |         ±28.37% |           42 |
+| **eventemitter3**      | 2,247,466 |         ±32.67% |           42 |
+| **event-emitter**      |   293,539 |        ±115.29% |           17 |
+| **node-event-emitter** |    69,743 |         ±77.57% |           18 |
+| **emitix**             |    27,619 |         ±50.74% |            6 |
+
+### `Off:`
+
+| Library                     |     ops/sec | Variability (%) | Runs Sampled |
+| --------------------------- | ----------: | --------------: | -----------: |
+| **tseep**                   | 241,358,834 |          ±0.43% |           96 |
+| **eventemitter3**           | 237,546,830 |          ±0.78% |           90 |
+| **emitix**                  |  86,382,491 |          ±1.77% |           93 |
+| **protobufjs-eventemitter** |  84,816,381 |          ±0.54% |           99 |
+| **cozyEvent**               |  64,156,580 |          ±1.30% |           89 |
+| **node-event-emitter**      |  53,750,923 |          ±2.40% |           91 |
+| **eventemitter2**           |  47,492,910 |          ±1.99% |           86 |
+| **braintree-event-emitter** |  37,476,993 |          ±0.49% |           96 |
+| **event-emitter**           |  34,195,978 |          ±0.99% |           96 |
+
+### `RemoveAllListeners`
+
+| Library                |     ops/sec | Variability (%) | Runs Sampled |
+| ---------------------- | ----------: | --------------: | -----------: |
+| **cozyEvent**          | 174,527,998 |          ±0.86% |           89 |
+| **eventemitter3**      | 160,803,376 |          ±2.56% |           91 |
+| **eventemitter2**      | 104,917,857 |          ±2.26% |           94 |
+| **node-event-emitter** |  26,451,753 |          ±3.37% |           90 |
+| **tseep**              |   8,722,096 |          ±2.12% |           93 |
 
 ## License
 

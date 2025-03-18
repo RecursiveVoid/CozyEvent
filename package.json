@@ -1,6 +1,6 @@
 {
   "name": "cozyevent",
-  "version": "1.1.5",
+  "version": "1.2.0",
   "description": "Lightweight, Fast Microtask Based Async/Sync Event Emitter",
   "main": "dist/index.cjs",
   "module": "dist/index.esm.js",

@@ -1,163 +1,83 @@
-import { EventHandler } from './types/EventHandler';
-
 /**
- * A simple event emitter class that allows you to register event listeners, emit events, and manage listeners.
- * It supports both synchronous and asynchronous event handling.
- *
- * @example
- * const eventEmitter = new CozyEvent();
- * eventEmitter.on('test', (message) => console.log(message));
- * eventEmitter.emit('test', 'Hello, world!');
+ * A lightweight event emitter class for handling event-driven programming.
+ * Supports synchronous and asynchronous event emission, along with event management methods.
  */
+type Callback<T = unknown> = (args: T) => void;
+
 class CozyEvent {
-  private _events: Record<string, EventHandler[]>;
+  private _events: Record<string, Callback<any>[]> = {};
 
   /**
-   * Creates a new CozyEvent instance with the option to choose asynchronous event handling.
+   * Registers an event listener that will be called every time the event is emitted.
    *
+   * @param event - The name of the event.
+   * @param callback - The function to be executed when the event is emitted.
    */
-  constructor() {
-    this._events = Object.create(null);
+  public on<T>(event: string, callback: Callback<T>): void {
+    (this._events[event] ??= []).push(callback);
   }
 
   /**
-   * Registers an event handler that will be called every time the event is emitted.
+   * Registers an event listener that will be called only once when the event is emitted.
    *
    * @param event - The name of the event.
-   * @param handler - The callback function to be executed when the event is emitted.
-   *
-   * @example
-   * eventEmitter.on('test', (message) => console.log(message));
-   * eventEmitter.emit('test', 'Hello, world!');
+   * @param callback - The function to be executed once when the event is emitted.
    */
-  public on(event: string, handler: EventHandler): void {
-    if (!this._events[event]) {
-      this._events[event] = [handler];
-    } else {
-      this._events[event].push(handler);
-    }
-  }
-
-  /**
-   * Registers a one-time event handler that will be triggered only the first time the event is emitted.
-   * After the event handler is called, it will be removed automatically.
-   *
-   * @param event - The name of the event.
-   * @param handler - The callback function to be executed when the event is emitted.
-   *
-   * @example
-   * eventEmitter.once('test', (message) => console.log(message));
-   * eventEmitter.emit('test', 'This will be logged.');
-   * eventEmitter.emit('test', 'This will not be logged.');
-   */
-  public once(event: string, handler: EventHandler): void {
-    const onceWrapper: EventHandler = (...args) => {
-      this.off(event, onceWrapper);
-      handler(...args);
+  public once<T>(event: string, callback: Callback<T>): void {
+    const onceCallback: Callback<T> = (args: T) => {
+      callback(args);
+      this.off(event, onceCallback); // Automatically remove the listener after it runs once
     };
-    this.on(event, onceWrapper);
+    this.on(event, onceCallback); // Register the once listener
   }
 
   /**
-   * Removes a previously registered event handler. If no handler is provided, all handlers for the event are removed.
+   * Removes a specific event listener.
    *
    * @param event - The name of the event.
-   * @param handler - The callback function to be removed (optional).
-   * If omitted, all handlers for the event will be removed.
-   *
-   * @example
-   * eventEmitter.off('test', handler); // Removes a specific handler
-   * eventEmitter.off('test'); // Removes all handlers for 'test' event
+   * @param callback - The function to remove from the event listeners.
    */
-  public off(event: string, handler?: EventHandler): void {
-    const handlers = this._events[event];
-    if (!handlers) return;
-    if (!handler) {
-      delete this._events[event];
-      return;
-    }
+  public off<T>(event: string, callback: Callback<T>): void {
+    if (!this._events[event]) return;
 
-    const filtered = handlers.filter((h) => h !== handler);
-    if (filtered.length) {
-      this._events[event] = filtered;
-    } else {
+    this._events[event] = this._events[event].filter((cb) => cb !== callback);
+
+    if (this._events[event].length === 0) {
       delete this._events[event];
     }
   }
 
   /**
-   * Removes all event listeners. Optionally, listeners for a specific event can be removed.
+   * Emits an event synchronously, executing all registered listeners with the provided parameters.
    *
-   * @param event - The name of the event to remove listeners for (optional).
-   * If omitted, all listeners for all events will be removed.
-   *
-   * @example
-   * eventEmitter.removeAllListeners(); // Removes all listeners
-   * eventEmitter.removeAllListeners('test'); // Removes listeners for the 'test' event
+   * @param event - The name of the event to emit.
+   * @param params - Optional parameters to pass to the listeners.
    */
-  public removeAllListeners(event?: string): void {
-    if (event) {
-      if (this._events[event]) {
-        delete this._events[event];
-      }
-    } else {
-      this._events = Object.create(null);
-    }
+  public emit<T>(event: string, params?: T): void {
+    this._events[event]?.forEach((callback) => callback(params));
   }
 
   /**
-   * Emits an event synchronously, calling all registered handlers with the provided arguments.
+   * Emits an event asynchronously using the microtask queue.
    *
-   * @param event - The name of the event.
-   * @param args - Arguments to pass to the event handlers.
-   *
-   * @example
-   * eventEmitter.emit('test', 'Hello, world!');
+   * @param event - The name of the event to emit.
+   * @param params - Optional parameters to pass to the listeners.
    */
-  public emit(event: string, ...args: any[]): void {
-    const handlers = this._events[event];
-    if (!handlers) return;
-    let i = 0;
-    const len = handlers.length;
-    for (; i + 3 < len; i += 4) {
-      handlers[i](...args);
-      handlers[i + 1](...args);
-      handlers[i + 2](...args);
-      handlers[i + 3](...args);
-    }
-    for (; i < len; i++) {
-      handlers[i](...args);
-    }
-  }
+  public emitAsync<T>(event: string, params?: T): void {
+    if (!this._events[event]) return;
 
-  /**
-   * Emits an event asynchronously using microtasks (next tick).
-   *
-   * @param event - The name of the event.
-   * @param args - Arguments to pass to the event handlers.
-   *
-   * @example
-   * eventEmitter.emitAsync('test', 'Hello, world!');
-   */
-  public emitAsync(event: string, ...args: any[]): void {
-    const handlers = this._events[event];
-    if (!handlers) return;
-    queueMicrotask(() => {
-      for (let i = 0; i < handlers.length; i++) {
-        handlers[i](...args);
-      }
+    Promise.resolve().then(() => {
+      this._events[event].forEach((callback) => callback(params));
     });
   }
 
   /**
-   * Destroys the event emitter and removes all event listeners.
-   * This method can be called when you no longer need the event emitter.
+   * Removes all event listeners. Optionally, removes only the listeners for a specific event.
    *
-   * @example
-   * eventEmitter.destroy();
+   * @param event - (Optional) The name of the event to remove listeners for.
    */
-  public destroy(): void {
-    this.removeAllListeners();
+  public removeAllListeners(event?: string): void {
+    event ? delete this._events[event] : (this._events = {});
   }
 }
 

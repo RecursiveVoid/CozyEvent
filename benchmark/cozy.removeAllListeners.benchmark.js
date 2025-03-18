@@ -1,6 +1,6 @@
 import Benchmark from 'benchmark';
 import { CozyEvent } from '../dist/index.esm.js';
-import {EventEmitter as Emitix} from "emitix";
+import { EventEmitter as Emitix } from 'emitix';
 import { EventEmitter as Tseep } from 'tseep';
 import EE3 from 'eventemitter3';
 import EventEmitter2 from 'eventemitter2';
@@ -22,22 +22,21 @@ const emitters = [
   { name: 'node-event-emitter: emit', constructor: NodeEventEmitter },
 ];
 
-
-
 const suite = new Benchmark.Suite();
 
-emitters.forEach(emitter => { 
- emitter.lib = new emitter.constructor();
+emitters.forEach((emitter) => {
+  emitter.lib = new emitter.constructor();
 });
 
-
-emitters.forEach(emitter => {
-  suite.add(`${emitter.name}: RemoveAllListeners:`, function () {
-    emitter.lib.removeAllListeners();
-  }).on('cycle', function (event) {
-    console.log(String(event.target.name + '✅'));
-    emitter.lib = new emitter.constructor();
-  });;
+emitters.forEach((emitter) => {
+  suite
+    .add(`${emitter.name}: RemoveAllListeners:`, function () {
+      emitter.lib.removeAllListeners();
+    })
+    .on('cycle', function (event) {
+      console.log(String(event.target.name + '✅'));
+      emitter.lib = new emitter.constructor();
+    });
 });
 
 suite
@@ -47,8 +46,10 @@ suite
   .on('complete', function () {
     console.log('\n');
     const results = this.sort((a, b) => a.stats.mean - b.stats.mean);
-    console.log(`Bencmark results for RemoveAllListeners  (fastest to slowest):\n`);
-    results.forEach(result => {
+    console.log(
+      `Bencmark results for RemoveAllListeners  (fastest to slowest):\n`
+    );
+    results.forEach((result) => {
       console.log(`${result}`);
     });
   })

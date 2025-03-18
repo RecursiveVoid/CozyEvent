@@ -1,6 +1,6 @@
 import Benchmark from 'benchmark';
 import { CozyEvent } from '../dist/index.esm.js';
-import {EventEmitter as Emitix} from "emitix";
+import { EventEmitter as Emitix } from 'emitix';
 import { EventEmitter as Tseep } from 'tseep';
 import EE3 from 'eventemitter3';
 import EventEmitter2 from 'eventemitter2';
@@ -8,7 +8,6 @@ import BraintreeEventEmitter from '@braintree/event-emitter';
 import ProtoBufEventEmitter from '@protobufjs/eventemitter';
 import EventEmitter from 'event-emitter';
 import { EventEmitter as NodeEventEmitter } from 'events';
-
 
 const eventname = 'test';
 const emitters = [
@@ -23,21 +22,21 @@ const emitters = [
   { name: 'node-event-emitter: emit', constructor: NodeEventEmitter },
 ];
 
-
-
 const suite = new Benchmark.Suite();
 
-emitters.forEach(emitter => { 
- emitter.lib = new emitter.constructor();
+emitters.forEach((emitter) => {
+  emitter.lib = new emitter.constructor();
 });
 
-
-emitters.forEach(emitter => {
-  suite.add(`${emitter.name}: on:`, function () {
-    emitter.lib.on(eventname, ()=>{});
-  })  .on('cycle', function (event) {
-    console.log(String(event.target.name + '✅'));
-  });
+emitters.forEach((emitter) => {
+  suite
+    .add(`${emitter.name}: once:`, function () {
+      emitter.lib.once(eventname, () => {});
+    })
+    .on('cycle', function (event) {
+      console.log(String(event.target.name + '✅'));
+      emitter.lib = new emitter.constructor();
+    });
 });
 
 suite
@@ -46,7 +45,7 @@ suite
     console.log('\n');
     const results = this.sort((a, b) => a.stats.mean - b.stats.mean);
     console.log(`Bencmark results for Once:\n`);
-    results.forEach(result => {
+    results.forEach((result) => {
       console.log(`${result}`);
     });
   })
