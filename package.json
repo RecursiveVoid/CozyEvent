@@ -1,7 +1,7 @@
 {
   "name": "cozyevent",
-  "version": "1.2.0",
-  "description": "Lightweight, Fast Microtask Based Async/Sync Event Emitter",
+  "version": "1.2.1",
+  "description": "World fastest, Lightweight Async/Sync Event Emitter",
   "main": "dist/index.cjs",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
@@ -29,7 +29,11 @@
     "once",
     "on",
     "EventListerner",
-    "Typescript"
+    "Typescript",
+    "fast",
+    "lightweight",
+    "benchmark",
+    "eventemitter2"
   ],
   "author": "M. Ergin Turk",
   "license": "MIT",
