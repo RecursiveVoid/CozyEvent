@@ -1,39 +1,142 @@
-[1.1.4] General Benchmark comparison with EventEmitter3 (Tested on 11th Gen Intel(R) Core(TM) i9-11950H @2.60GHz) credit: RecursiveVoid 
-    Emit:
-        Single Listener: 
-            CozyEvent: Emit x 73,436,377 ops/sec ±2.10% (90 runs sampled)
-            EventEmitter3: Emit x 75,723,331 ops/sec ±2.30% (86 runs sampled)
-        100 Listener:
-            CozyEvent: Emit x 12,355,506 ops/sec ±0.77% (90 runs sampled)
-            EventEmitter3: Emit x 2,158,329 ops/sec ±1.37% (93 runs sampled)
-        1000 Listener: 
-            CozyEvent: Emit x 1,041,563 ops/sec ±1.18% (92 runs sampled)
-            EventEmitter3: Emit x 190,031 ops/sec ±1.51% (89 runs sampled)
-        10_000 Listener:
-            CozyEvent: Emit x 108,710 ops/sec ±1.13% (91 runs sampled)
-            EventEmitter3: Emit x 18,906 ops/sec ±2.45% (87 runs sampled)
-        100_000 Listener:
-            CozyEvent: Emit x 4,446 ops/sec ±15.79% (84 runs sampled)
-            EventEmitter3: Emit x 1,427 ops/sec ±4.82% (76 runs sampled)
-        1_000_000 Listener: 
-            CozyEvent: Emit x 95.75 ops/sec ±5.86% (62 runs sampled)
-            EventEmitter3: Emit x 67.40 ops/sec ±10.25% (47 runs sampled)
-        10_000_000 Listener:
-            CozyEvent: Emit x 12.45 ops/sec ±2.63% (35 runs sampled)
-            EventEmitter3: Emit x 12.51 ops/sec ±3.39% (35 runs sampled)
-    On:
-        CozyEvent: Register event listener x 6,166,957 ops/sec ±20.06% (54 runs sampled)
-        EventEmitter3: Register event listener x 2,524,413 ops/sec ±50.34% (32 runs sampled)
-    Once: 
-        CozyEvent: Register event listener x 2,964,783 ops/sec ±38.37% (45 runs sampled)
-        EventEmitter3: Register event listener x 1,361,896 ops/sec ±60.59% (20 runs sampled)        
-    RemoveAllListeners:
-        CozyEvent: RemoveAllListeners x 9,945,386 ops/sec ±9.36% (53 runs sampled)
-        EventEmitter3: RemoveAllListeners x 45,471,548 ops/sec ±5.46% (66 runs sampled)
-    Add and Remove one listener: 
-        CozyEvent: RemoveAllListeners x 22,277,019 ops/sec ±3.65% (80 runs sampled)
-        EventEmitter3: RemoveAllListeners x 36,342,979 ops/sec ±9.16% (66 runs sampled)
+Bencmark results for 1 Listeners (fastest to slowest):
+
+tseep: emit: EMIT x 150,478,733 ops/sec ±4.23% (73 runs sampled)
+emitix: emit: EMIT x 140,228,566 ops/sec ±2.95% (87 runs sampled)
+braintree-event-emitter: emit: EMIT x 116,288,878 ops/sec ±5.09% (76 runs sampled)
+node-event-emitter: emit: EMIT x 76,115,319 ops/sec ±1.57% (87 runs sampled)
+eventemitter3: emit: EMIT x 67,154,914 ops/sec ±2.42% (84 runs sampled)
+cozyEvent: emit: EMIT x 65,655,380 ops/sec ±2.83% (83 runs sampled)
+eventemitter2: emit: EMIT x 60,477,745 ops/sec ±2.84% (84 runs sampled)
+event-emitter: emit: EMIT x 44,253,408 ops/sec ±2.52% (86 runs sampled)
+protobufjs-eventemitter: emit: EMIT x 13,654,732 ops/sec ±8.55% (61 runs sampled)
 
 
-    
-       
+Bencmark results for 10 Listeners (fastest to slowest):
+
+braintree-event-emitter: emit: EMIT x 56,376,133 ops/sec ±1.93% (87 runs sampled)
+tseep: emit: EMIT x 41,863,156 ops/sec ±2.49% (87 runs sampled)
+emitix: emit: EMIT x 27,163,235 ops/sec ±1.86% (87 runs sampled)
+eventemitter3: emit: EMIT x 14,455,415 ops/sec ±2.44% (88 runs sampled)
+cozyEvent: emit: EMIT x 13,265,572 ops/sec ±0.96% (94 runs sampled)
+eventemitter2: emit: EMIT x 12,618,900 ops/sec ±0.99% (92 runs sampled)
+node-event-emitter: emit: EMIT x 10,104,895 ops/sec ±1.72% (90 runs sampled)
+protobufjs-eventemitter: emit: EMIT x 9,149,736 ops/sec ±1.59% (93 runs sampled)
+event-emitter: emit: EMIT x 6,746,465 ops/sec ±1.26% (92 runs sampled)
+
+
+Bencmark results for 100 Listeners (fastest to slowest):
+
+tseep: emit: EMIT x 46,009,375 ops/sec ±1.21% (93 runs sampled)
+braintree-event-emitter: emit: EMIT x 21,513,448 ops/sec ±0.71% (98 runs sampled)
+emitix: emit: EMIT x 7,183,778 ops/sec ±0.75% (95 runs sampled)
+eventemitter3: emit: EMIT x 2,160,833 ops/sec ±1.51% (91 runs sampled)
+cozyEvent: emit: EMIT x 1,935,762 ops/sec ±1.21% (94 runs sampled)
+eventemitter2: emit: EMIT x 1,839,275 ops/sec ±1.53% (94 runs sampled)
+node-event-emitter: emit: EMIT x 1,558,394 ops/sec ±0.81% (92 runs sampled)
+protobufjs-eventemitter: emit: EMIT x 1,208,323 ops/sec ±0.74% (95 runs sampled)
+event-emitter: emit: EMIT x 956,921 ops/sec ±0.99% (91 runs sampled)
+
+
+Bencmark results for 1000 Listeners (fastest to slowest):
+
+tseep: emit: EMIT x 45,629,674 ops/sec ±1.10% (93 runs sampled)
+braintree-event-emitter: emit: EMIT x 4,272,051 ops/sec ±0.53% (93 runs sampled)
+emitix: emit: EMIT x 783,081 ops/sec ±1.17% (97 runs sampled)
+eventemitter3: emit: EMIT x 226,211 ops/sec ±0.65% (94 runs sampled)
+cozyEvent: emit: EMIT x 201,700 ops/sec ±1.70% (92 runs sampled)
+eventemitter2: emit: EMIT x 193,354 ops/sec ±0.69% (91 runs sampled)
+node-event-emitter: emit: EMIT x 163,926 ops/sec ±0.90% (96 runs sampled)
+protobufjs-eventemitter: emit: EMIT x 126,721 ops/sec ±1.03% (92 runs sampled)
+event-emitter: emit: EMIT x 98,646 ops/sec ±0.73% (94 runs sampled)
+
+
+Bencmark results for 10000 Listeners (fastest to slowest):
+
+braintree-event-emitter: emit: EMIT x 459,134 ops/sec ±0.60% (96 runs sampled)
+tseep: emit: EMIT x 409,674 ops/sec ±1.06% (96 runs sampled)
+emitix: emit: EMIT x 62,788 ops/sec ±7.44% (80 runs sampled)
+eventemitter3: emit: EMIT x 22,034 ops/sec ±1.93% (87 runs sampled)
+cozyEvent: emit: EMIT x 20,533 ops/sec ±0.76% (91 runs sampled)
+eventemitter2: emit: EMIT x 20,340 ops/sec ±1.70% (92 runs sampled)
+node-event-emitter: emit: EMIT x 16,380 ops/sec ±1.43% (92 runs sampled)
+event-emitter: emit: EMIT x 5,985 ops/sec ±10.35% (63 runs sampled)
+protobufjs-eventemitter: emit: EMIT x 859 ops/sec ±182.92% (55 runs sampled)
+
+
+Bencmark results for 100000 Listeners (fastest to slowest):
+
+tseep: emit: EMIT x 40,914 ops/sec ±1.04% (94 runs sampled)
+braintree-event-emitter: emit: EMIT x 40,205 ops/sec ±1.93% (87 runs sampled)
+emitix: emit: EMIT x 6,476 ops/sec ±2.03% (85 runs sampled)
+eventemitter3: emit: EMIT x 2,006 ops/sec ±2.15% (89 runs sampled)
+cozyEvent: emit: EMIT x 1,992 ops/sec ±0.96% (90 runs sampled)
+eventemitter2: emit: EMIT x 1,180 ops/sec ±1.64% (86 runs sampled)
+node-event-emitter: emit: EMIT x 1,101 ops/sec ±1.87% (85 runs sampled)
+protobufjs-eventemitter: emit: EMIT x 1,091 ops/sec ±2.86% (84 runs sampled)
+event-emitter: emit: EMIT x 738 ops/sec ±2.12% (85 runs sampled)
+
+
+
+Bencmark results for 1000000 Listeners (fastest to slowest):
+
+braintree-event-emitter: emit: EMIT x 4,470 ops/sec ±1.82% (92 runs sampled)
+tseep: emit: EMIT x 3,989 ops/sec ±2.12% (94 runs sampled)
+emitix: emit: EMIT x 352 ops/sec ±0.89% (90 runs sampled)
+cozyEvent: emit: EMIT x 198 ops/sec ±1.59% (85 runs sampled)
+eventemitter3: emit: EMIT x 181 ops/sec ±1.32% (84 runs sampled)
+eventemitter2: emit: EMIT x 136 ops/sec ±1.52% (78 runs sampled)
+node-event-emitter: emit: EMIT x 121 ops/sec ±2.16% (77 runs sampled)
+protobufjs-eventemitter: emit: EMIT x 118 ops/sec ±1.37% (76 runs sampled)
+event-emitter: emit: EMIT x 84.77 ops/sec ±1.80% (72 runs sampled)
+
+
+Bencmark results for 10000000 Listeners (fastest to slowest):
+
+braintree-event-emitter: emit: EMIT x 206 ops/sec ±1.15% (88 runs sampled)
+tseep: emit: EMIT x 176 ops/sec ±1.41% (80 runs sampled)
+emitix: emit: EMIT x 36.35 ops/sec ±1.18% (64 runs sampled)
+cozyEvent: emit: EMIT x 19.85 ops/sec ±2.05% (37 runs sampled)
+eventemitter3: emit: EMIT x 18.10 ops/sec ±2.76% (49 runs sampled)
+eventemitter2: emit: EMIT x 12.86 ops/sec ±2.54% (36 runs sampled)
+protobufjs-eventemitter: emit: EMIT x 12.03 ops/sec ±1.57% (34 runs sampled)
+node-event-emitter: emit: EMIT x 11.63 ops/sec ±3.14% (34 runs sampled)
+event-emitter: emit: EMIT x 8.39 ops/sec ±2.86% (25 runs sampled)
+
+
+
+
+
+on: 
+
+cozyEvent: emit: on: x 6,505,326 ops/sec ±17.96% (53 runs sampled)
+tseep: emit: on: x 6,324,473 ops/sec ±29.65% (54 runs sampled)
+eventemitter2: emit: on: x 4,788,503 ops/sec ±28.28% (47 runs sampled)
+eventemitter3: emit: on: x 4,459,122 ops/sec ±31.74% (49 runs sampled)
+node-event-emitter: emit: on: x 3,176,312 ops/sec ±53.19% (45 runs sampled)
+event-emitter: emit: on: x 2,988,086 ops/sec ±44.26% (43 runs sampled)
+protobufjs-eventemitter: emit: on: x 2,866,938 ops/sec ±47.61% (37 runs sampled)
+emitix: emit: on: x 2,816,031 ops/sec ±45.81% (39 runs sampled)
+braintree-event-emitter: emit: on: x 2,669,054 ops/sec ±100.64% (33 runs sampled)
+
+once:
+
+tseep: emit: Once: x 5,634,499 ops/sec ±27.80% (55 runs sampled)
+eventemitter3: emit: Once: x 3,835,074 ops/sec ±25.51% (52 runs sampled)
+cozyEvent: emit: Once: x 2,985,437 ops/sec ±29.24% (40 runs sampled)
+eventemitter2: emit: Once: x 1,874,694 ops/sec ±30.44% (45 runs sampled)
+emitix: emit: Once: x 1,778,689 ops/sec ±44.04% (26 runs sampled)
+event-emitter: emit: Once: x 1,046,937 ops/sec ±53.61% (27 runs sampled)
+node-event-emitter: emit: Once: x 868,222 ops/sec ±55.41% (23 runs sampled)
+
+
+remove:
+
+eventemitter3: emit: RemoveAllListeners: x 77,367,926 ops/sec ±1.91% (85 runs sampled)
+eventemitter2: emit: RemoveAllListeners: x 65,672,510 ops/sec ±3.83% (84 runs sampled)
+cozyEvent: emit: RemoveAllListeners: x 49,410,437 ops/sec ±4.15% (84 runs sampled)
+node-event-emitter: emit: RemoveAllListeners: x 22,268,523 ops/sec ±0.87% (92 runs sampled)
+tseep: emit: RemoveAllListeners: x 7,858,151 ops/sec ±2.33% (88 runs sampled)
+braintree-event-emitter: emit: RemoveAllListeners: N/A
+protobufjs-eventemitter: emit: RemoveAllListeners: N/A
+event-emitter: emit: RemoveAllListeners: N/A
+emitix: emit: RemoveAllListeners: N/A
