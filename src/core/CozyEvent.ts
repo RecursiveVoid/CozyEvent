@@ -78,6 +78,11 @@ class CozyEvent {
   public removeAllListeners(event?: string): void {
     event ? delete this._events[event] : (this._events = {});
   }
+
+  public destroy(): void {
+    this.removeAllListeners();
+    this._events = {};
+  }
 }
 
 export { CozyEvent };
