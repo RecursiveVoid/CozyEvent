@@ -1,6 +1,6 @@
 ![](https://i.imgur.com/lU4VqXb.png)
 
-# CozyEvent — World fastest, Lightweight Event Emitter
+# CozyEvent — World's fastest, Lightweight Event Emitter
 
 ![npm](https://img.shields.io/npm/v/cozyevent)
 [![Build Size](https://img.shields.io/bundlephobia/minzip/cozyevent?label=bundle%20size)](https://bundlephobia.com/result?p=cozyevent)
