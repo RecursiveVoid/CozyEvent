@@ -76,11 +76,7 @@ class CozyEvent {
    * @param event - (Optional) The name of the event to remove listeners for.
    */
   public removeAllListeners(event?: string): void {
-    if (event) {
-      delete this._events[event];
-    } else {
-      this._events = {};
-    }
+    event ? delete this._events[event] : this._events = {};
   }
 }
 
