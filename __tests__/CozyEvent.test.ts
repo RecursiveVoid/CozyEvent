@@ -8,7 +8,7 @@ describe('CozyEvent', () => {
   });
 
   afterEach(() => {
-    emitter.destroy();
+    emitter.removeAllListeners();
     emitter = null;
   });
 
@@ -89,7 +89,7 @@ describe('CozyEvent', () => {
   test('should destroy: emitSync should not throw exeption', async () => {
     const mockFn = jest.fn();
     emitter.on('asyncEvent', mockFn);
-    emitter.destroy();
+    emitter.removeAllListeners();
     emitter.emit('asyncEvent', 'Oh look at me, look at me');
     expect(mockFn).not.toHaveBeenCalledWith('Oh look at me, look at me');
   });
@@ -97,7 +97,7 @@ describe('CozyEvent', () => {
   test('should destroy: emitAsync should not throw exeption', async () => {
     const mockFn = jest.fn();
     emitter.on('asyncEvent', mockFn);
-    emitter.destroy();
+    emitter.removeAllListeners();
     emitter.emitAsync('asyncEvent', 'Imma event!');
     expect(mockFn).not.toHaveBeenCalledWith('Imma event!');
   });

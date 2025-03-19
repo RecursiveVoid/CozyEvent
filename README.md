@@ -116,7 +116,7 @@ eventEmitter.off('chat', handler);
 
 #### `removeAllListeners(event?: string): void`
 
-Removes all listeners for a specific event or all events if no event is specified.
+Removes all listeners for a specific event or all events if no event is specified. This method replaces the previous `destroy` method, as it now handles the same functionality.
 
 ```typescript
 eventEmitter.removeAllListeners('chat');
@@ -142,14 +142,18 @@ instance.on('done', (message) => {
 instance.doSomething();
 ```
 
-### Destroying the Event Emitter
+### Destroying the Event Emitter (Deprecated)
 
 #### `destroy(): void`
 
-Removes all listeners and cleans up the event emitter.
+> **Deprecated:** This method has been replaced by `removeAllListeners()`. Use `removeAllListeners()` to achieve the same functionality.
 
 ```typescript
+// Deprecated
 eventEmitter.destroy();
+
+// Recommended
+eventEmitter.removeAllListeners();
 ```
 
 ## Benchmark Results
