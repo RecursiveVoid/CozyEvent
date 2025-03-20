@@ -7,9 +7,10 @@
     "skipLibCheck": true, // Speeds up compilation by skipping lib type checking
     "strict": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "importHelpers": true,
     "noEmitHelpers": true,
-    "strictNullChecks": false,
-  }
+    "strictNullChecks": false
+  },
+  "include": ["src", "__tests__"]
 }

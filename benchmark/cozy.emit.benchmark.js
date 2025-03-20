@@ -8,47 +8,101 @@ import BraintreeEventEmitter from '@braintree/event-emitter';
 import ProtoBufEventEmitter from '@protobufjs/eventemitter';
 import EventEmitter from 'event-emitter';
 import { EventEmitter as NodeEventEmitter } from 'events';
+import Backbone from 'backbone';
 
-// Change this value to test with different amount of emitters
-const emitterAmounts = [
-  1, 10, 100, 1000, 10_000, 100_000, 1_000_000, 10_000_000,
-];
+const emitterAmounts = [1];
 const callback = () => {};
 const eventname = 'test';
-// Event emitters to be tested
+
 const emitters = [
-  { name: 'cozyEvent: emit', constructor: CozyEvent },
-  { name: 'tseep: emit', constructor: Tseep },
-  { name: 'eventemitter3: emit', constructor: EE3 },
-  { name: 'eventemitter2: emit', constructor: EventEmitter2 },
-  { name: 'braintree-event-emitter: emit', constructor: BraintreeEventEmitter },
-  { name: 'protobufjs-eventemitter: emit', constructor: ProtoBufEventEmitter },
-  { name: 'event-emitter: emit', constructor: EventEmitter },
-  { name: 'emitix: emit', constructor: Emitix },
-  { name: 'node-event-emitter: emit', constructor: NodeEventEmitter },
+  {
+    name: 'cozyEvent: emit',
+    constructor: () => new CozyEvent(),
+    addListener: 'on',
+    emitMethod: 'emit',
+  },
+  {
+    name: 'tseep: emit',
+    constructor: () => new Tseep(),
+    addListener: 'on',
+    emitMethod: 'emit',
+  },
+  {
+    name: 'eventemitter3: emit',
+    constructor: () => new EE3(),
+    addListener: 'on',
+    emitMethod: 'emit',
+  },
+  {
+    name: 'eventemitter2: emit',
+    constructor: () => new EventEmitter2(),
+    addListener: 'on',
+    emitMethod: 'emit',
+  },
+  {
+    name: 'braintree-event-emitter: emit',
+    constructor: () => new BraintreeEventEmitter(),
+    addListener: 'on',
+    emitMethod: 'emit',
+  },
+  {
+    name: 'protobufjs-eventemitter: emit',
+    constructor: () => new ProtoBufEventEmitter(),
+    addListener: 'on',
+    emitMethod: 'emit',
+  },
+  {
+    name: 'event-emitter: emit',
+    constructor: () => new EventEmitter(),
+    addListener: 'on',
+    emitMethod: 'emit',
+  },
+  {
+    name: 'emitix: emit',
+    constructor: () => new Emitix(),
+    addListener: 'on',
+    emitMethod: 'emit',
+  },
+  {
+    name: 'node-event-emitter: emit',
+    constructor: () => new NodeEventEmitter(),
+    addListener: 'on',
+    emitMethod: 'emit',
+  },
+  {
+    name: 'eventtarget: emit',
+    constructor: () => new EventTarget(),
+    addListener: 'addEventListener',
+    emitMethod: 'dispatchEvent',
+  },
+  {
+    name: 'backbone: emit',
+    constructor: () => Object.assign({}, Backbone.Events),
+    addListener: 'on',
+    emitMethod: 'trigger',
+  },
 ];
 
 emitterAmounts.forEach((emitterAmount) => {
   const suite = new Benchmark.Suite();
 
   emitters.forEach((emitter) => {
-    if (emitter.lib) {
-      if (typeof emitter.lib['removeAllListeners'] === 'function') {
-        emitter.lib.removeAllListeners();
-      }
-    }
-    emitter.lib = new emitter.constructor();
+    emitter.lib = emitter.constructor();
   });
 
   for (let i = 0; i < emitterAmount; i++) {
     emitters.forEach((emitter) => {
-      emitter.lib.on(eventname, callback);
+      emitter.lib[emitter.addListener](eventname, callback);
     });
   }
 
   emitters.forEach((emitter) => {
     suite.add(`${emitter.name}: EMIT`, function () {
-      emitter.lib.emit(eventname, callback);
+      if (emitter.emitMethod === 'dispatchEvent') {
+        emitter.lib.dispatchEvent(new Event(eventname));
+      } else {
+        emitter.lib[emitter.emitMethod](eventname, callback);
+      }
     });
   });
 
@@ -63,7 +117,7 @@ emitterAmounts.forEach((emitterAmount) => {
       console.log('\n');
       const results = this.sort((a, b) => a.stats.mean - b.stats.mean);
       console.log(
-        `Bencmark results for ${emitterAmount} Listeners (fastest to slowest):\n`
+        `Benchmark results for ${emitterAmount} Listeners (fastest to slowest):\n`
       );
       results.forEach((result) => {
         console.log(`${result}`);
@@ -79,7 +133,7 @@ emitterAmounts.forEach((emitterAmount) => {
     Once the tests are done, please open a new discussion from here:
      https://github.com/RecursiveVoid/CozyEvent/discussions/new?category=benchmark
 
-    and share your test suit code and the following format as in report.txt file in the discussion:
+    and share your test suite code and the following format as in report.txt file in the discussion:
     - CozyEvent version
     - CPU on your machine
     - Brief description of your test
@@ -87,5 +141,5 @@ emitterAmounts.forEach((emitterAmount) => {
 
     -As title; [version] Brief explanation of the test
 
-    Once its verified, it will be added to report.txt file in the repository with the credit as author.
-  */
+    Once it's verified, it will be added to report.txt file in the repository with the credit as author.
+*/

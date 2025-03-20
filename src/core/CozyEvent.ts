@@ -2,7 +2,8 @@
  * A lightweight event emitter class for handling event-driven programming.
  * Supports synchronous and asynchronous event emission, along with event management methods.
  */
-type Callback<T = unknown> = (args: T) => void;
+
+import { Callback } from './types/Callback';
 
 class CozyEvent {
   private _events: Record<string, Callback<any>[]> = {};
@@ -26,9 +27,9 @@ class CozyEvent {
   public once<T>(event: string, callback: Callback<T>): void {
     const onceCallback: Callback<T> = (args: T) => {
       callback(args);
-      this.off(event, onceCallback); // Automatically remove the listener after it runs once
+      this.off(event, onceCallback);
     };
-    this.on(event, onceCallback); // Register the once listener
+    this.on(event, onceCallback);
   }
 
   /**
@@ -76,7 +77,7 @@ class CozyEvent {
    * @param event - (Optional) The name of the event to remove listeners for.
    */
   public removeAllListeners(event?: string): void {
-    event ? delete this._events[event] : this._events = {};
+    event ? delete this._events[event] : (this._events = {});
   }
 }
 
