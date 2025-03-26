@@ -13,6 +13,12 @@
 
 A **lightweight** ; only **341 Bytes** (bundle size), might be the **worlds fastest**, microtask-based asynchronous and synchronous event emitter for JavaScript/TypeScript .Check the [benchmark results below](#benchmark-results)!
 
+### Whats COZY stands for;
+
+COZY stands for Compact, On-point, Zero-overhead, Yet-powerful.
+
+A fine-tailored ecosystem of TypeScript libraries designed for your everyday needs—lightweight, efficient, and built to get the job done. No bloat, just pure performance. 🚀
+
 ## Change log
 
 - v.1.2.0: Performance improvement; **22x faster** than v.1.1.0 (see the [benchmark below](#benchmark-results))
