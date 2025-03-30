@@ -164,29 +164,33 @@ With CozyEvent React integration, you can:
 - Emit and listen to events in a declarative way.
 - Organize events using namespaces to avoid conflicts.
 - Automatically handle event subscriptions and cleanups with React's lifecycle.
+- Use multiple instances of `CozyEventProvider` to isolate event handling in different parts of your application.
 
 This section explains how to use the React integration with practical examples and best practices.
+
 
 ### Components and Hooks
 
 #### `CozyEventProvider`
 
-The `CozyEventProvider` is a React component that provides a `CozyEvent` instance to all its child components via React Context. If no custom instance is provided, a global instance is used by default.
+The `CozyEventProvider` is a React component that provides a `CozyEvent` instance to all its child components via React Context. If no custom instance is provided, a global instance is used by default. You can also provide an optional `id` to identify the provider instance, which is useful for debugging or managing multiple instances.
 
 **Props:**
 
 - `instance` (optional): A custom `CozyEvent` instance. If omitted, the global instance is used.
 - `children`: The child components that will have access to the event context.
+- `id` (optional): An identifier for the provider instance. Defaults to `'default'`.
 
 #### `useCozyEvent`
 
-The `useCozyEvent` hook allows components to subscribe to specific events emitted by the `CozyEvent` instance provided by the `CozyEventProvider`.
+The `useCozyEvent` hook allows components to subscribe to specific events emitted by the `CozyEvent` instance provided by the nearest `CozyEventProvider`.
 
 **Parameters:**
 
 - `eventName` (string): The name of the event to subscribe to.
 - `callback` (function): The function to execute when the event is emitted.
 - `namespace` (optional, string): A namespace to scope the event subscription.
+- `id` (optional, string): The identifier of the `CozyEventProvider` instance to use. If omitted, the nearest provider or the global instance is used.
 
 **Returns:**
 
@@ -357,12 +361,13 @@ const GlobalEventListener = () => {
 - **Leverage namespaces:** Use the `namespace` parameter to organize events logically.
 - **Clean up listeners:** The `useCozyEvent` hook automatically handles cleanup, but avoid manually duplicating subscriptions.
 - **Use custom instances when needed:** For better modularity, use custom `CozyEvent` instances in different parts of your application.
+- **Use `id` for debugging:** When using multiple instances, assign meaningful `id`s to `CozyEventProvider` instances to make debugging easier.
 
 ---
 
 ### Summary
 
-The React integration for CozyEvent provides a simple and powerful way to manage events in your React applications. With `CozyEventProvider` and `useCozyEvent`, you can easily emit and listen to events, organize them with namespaces, and ensure proper lifecycle management. Whether you’re building a small app or a large-scale project, CozyEvent makes event-driven communication seamless and efficient.
+The React integration for CozyEvent provides a simple and powerful way to manage events in your React applications. With `CozyEventProvider` and `useCozyEvent`, you can easily emit and listen to events, organize them with namespaces, and ensure proper lifecycle management. The support for multiple instances makes it highly scalable and modular, suitable for both small and large-scale projects.
 
 ## Benchmark Results
 
