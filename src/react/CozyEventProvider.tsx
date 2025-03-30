@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useMemo } from 'react';
 import { CozyEvent } from '../core/CozyEvent';
 import { CozyEventContext } from './context';
 import { CozyEventProviderProps } from './types';
@@ -24,8 +24,11 @@ export const CozyEventProvider: FC<CozyEventProviderProps> = ({
     throw new Error('Invalid CozyEvent instance provided to CozyEventProvider');
   }
 
+  // Memorize the context value to avoid unnecessary re-renders
+  const contextValue = useMemo(() => instance, [instance]);
+
   return (
-    <CozyEventContext.Provider value={instance}>
+    <CozyEventContext.Provider value={contextValue}>
       {children}
     </CozyEventContext.Provider>
   );
