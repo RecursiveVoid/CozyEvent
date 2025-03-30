@@ -5,6 +5,7 @@ import { useCozyEvent } from '../src/react/useCozyEvent';
 import { CozyEvent } from '../src/core/CozyEvent';
 import { CozyEventContext } from '../src/react/context';
 import { globalCozyEventInstance } from '../src/react/CozyEventProvider';
+import { registerCozyEventInstance, getCozyEventInstanceById } from '../src/react/instanceRegistry';
 import '@testing-library/jest-dom';
 
 // Mock console.warn
@@ -414,6 +415,36 @@ describe('useCozyEvent', () => {
     render(<TestComponent />);
   
     expect(hookEmitter).toBe(globalCozyEventInstance);
+  });
+
+
+  it('throws an error if no instance is found for the given ID', () => {
+    const TestComponent = () => {
+      useCozyEvent('test-event', jest.fn(), undefined, 'nonexistent-id');
+      return <div>Test</div>;
+    };
+  
+    expect(() => {
+      render(<TestComponent />);
+    }).toThrow('No CozyEvent instance found for id: nonexistent-id');
+  });
+});
+
+describe('Instance Registry', () => {
+  // Tests that the instance registry correctly registers and retrieves instances by ID.
+  it('registers and retrieves instances by ID', () => {
+    const instance1 = new CozyEvent();
+    const instance2 = new CozyEvent();
+
+    registerCozyEventInstance('instance1', instance1);
+    registerCozyEventInstance('instance2', instance2);
+
+    expect(getCozyEventInstanceById('instance1')).toBe(instance1);
+    expect(getCozyEventInstanceById('instance2')).toBe(instance2);
+  });
+
+  it('returns undefined for unregistered IDs', () => {
+    expect(getCozyEventInstanceById('nonexistent')).toBeUndefined();
   });
 });
 

@@ -1,6 +1,7 @@
 import { useEffect, useContext, useMemo, useCallback } from 'react';
 import { CozyEventContext } from './context';
 import { globalCozyEventInstance } from './CozyEventProvider';
+import { getCozyEventInstanceById } from './instanceRegistry';
 
 /**
  * A custom React hook for subscribing to events using the CozyEvent system.
@@ -43,7 +44,14 @@ export const useCozyEvent = (
   namespace?: string,
   id?: string
 ) => {
-  const emitter = useContext(CozyEventContext) || globalCozyEventInstance;
+  const emitter = id
+  ? getCozyEventInstanceById(id)
+  : useContext(CozyEventContext) || globalCozyEventInstance;
+
+  // Validate the emitter
+  if (!emitter) {
+    throw new Error(`No CozyEvent instance found for id: ${id}`);
+  }
 
   // Validate eventName
   if (typeof eventName !== 'string' || eventName.trim() === '') {
