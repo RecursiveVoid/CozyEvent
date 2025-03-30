@@ -11,5 +11,6 @@
     "importHelpers": true,
     "noEmitHelpers": true,
     "strictNullChecks": false,
+    "jsx": "react-jsx"
   }
 }
