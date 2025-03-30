@@ -12,4 +12,9 @@ export interface CozyEventProviderProps {
   * The child components or elements to be rendered within the provider.
   */
   children: React.ReactNode;
+  
+  /**
+  * An optional identifier for the provider instance.
+  */
+  id?: string;
 }

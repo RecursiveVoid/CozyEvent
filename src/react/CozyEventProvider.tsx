@@ -18,6 +18,7 @@ export const globalCozyEventInstance = new CozyEvent(); // Use the global instan
 export const CozyEventProvider: FC<CozyEventProviderProps> = ({
   instance = globalCozyEventInstance,
   children,
+  id = 'default', // Default ID for the provider
 }) => {
   // Validate the instance
   if (!(instance instanceof CozyEvent)) {

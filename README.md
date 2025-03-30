@@ -295,6 +295,46 @@ const LifecycleExample = () => {
 
 ---
 
+#### 3. **Handling Multiple Instances**
+
+You can use multiple `CozyEventProvider` instances to isolate event handling in different parts of your application. Each provider can have its own `CozyEvent` instance.
+
+```tsx
+const App = () => {
+  const authEmitter = new CozyEvent();
+  const notificationEmitter = new CozyEvent();
+
+  return (
+    <>
+      <CozyEventProvider instance={authEmitter} id="auth">
+        <AuthModule />
+      </CozyEventProvider>
+      <CozyEventProvider instance={notificationEmitter} id="notifications">
+        <NotificationModule />
+      </CozyEventProvider>
+    </>
+  );
+};
+
+const AuthModule = () => {
+  useCozyEvent('login', (data) => {
+    console.log('User logged in:', data);
+  }, undefined, 'auth');
+
+  return <div>Auth Module</div>;
+};
+
+const NotificationModule = () => {
+  useCozyEvent('new-message', (data) => {
+    console.log('New message:', data);
+  }, undefined, 'notifications');
+
+  return <div>Notification Module</div>;
+};
+```
+
+---
+
 #### 4. **Global Instance**
 
 If you don’t use a `CozyEventProvider`, the `useCozyEvent` hook will fall back to using a global `CozyEvent` instance.

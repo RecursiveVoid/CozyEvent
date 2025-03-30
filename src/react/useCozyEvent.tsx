@@ -30,11 +30,18 @@ import { globalCozyEventInstance } from './CozyEventProvider';
  * useCozyEvent('update', (data) => {
  *   console.log('Update event:', data);
  * }, 'app');
+ * 
+ * @example
+ * // Usage with namespace and ID
+ * useCozyEvent('update', (data) => {
+ *   console.log('Update event:', data);
+ * }, 'app', 'unique-id');
  */
 export const useCozyEvent = (
   eventName: string,
   callback: (data: any) => void,
-  namespace?: string
+  namespace?: string,
+  id?: string
 ) => {
   const emitter = useContext(CozyEventContext) || globalCozyEventInstance;
 
