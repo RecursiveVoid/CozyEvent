@@ -295,7 +295,7 @@ const LifecycleExample = () => {
 
 ---
 
-#### 3. **Handling Multiple Instances**
+#### 4. **Handling Multiple Instances**
 
 You can use multiple `CozyEventProvider` instances to isolate event handling in different parts of your application. Each provider can have its own `CozyEvent` instance.
 
@@ -335,7 +335,7 @@ const NotificationModule = () => {
 
 ---
 
-#### 4. **Global Instance**
+#### 5. **Global Instance**
 
 If you don’t use a `CozyEventProvider`, the `useCozyEvent` hook will fall back to using a global `CozyEvent` instance.
 
