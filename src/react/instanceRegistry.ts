@@ -12,6 +12,14 @@ export const registerCozyEventInstance = (id: string, instance: CozyEvent) => {
 };
 
 /**
+ * Unregisters a CozyEvent instance by its ID.
+ * @param id - The unique identifier for the instance.
+ */
+export const unregisterCozyEventInstance = (id: string) => {
+  delete instanceRegistry[id];
+};
+
+/**
  * Retrieves a CozyEvent instance by its ID. If no instance is found, returns undefined.
  * @param id - The unique identifier for the instance.
  * @returns The CozyEvent instance associated with the ID, or undefined if not found.

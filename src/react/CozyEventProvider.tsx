@@ -1,8 +1,8 @@
-import { FC, useMemo } from 'react';
+import { FC, useMemo, useEffect } from 'react';
 import { CozyEvent } from '../core/CozyEvent';
 import { CozyEventContext } from './context';
 import { CozyEventProviderProps } from './types';
-import { registerCozyEventInstance } from './instanceRegistry';
+import { registerCozyEventInstance, unregisterCozyEventInstance } from './instanceRegistry';
 
 
 /**
@@ -27,9 +27,12 @@ export const CozyEventProvider: FC<CozyEventProviderProps> = ({
     throw new Error('Invalid CozyEvent instance provided to CozyEventProvider');
   }
 
-   // Register the instance with its ID
-   useMemo(() => {
+   // Register and unregister the instance with useEffect
+   useEffect(() => {
     registerCozyEventInstance(id, instance);
+    return () => {
+      unregisterCozyEventInstance(id);
+    };
   }, [id, instance]);
   
   // Memorize the context value to avoid unnecessary re-renders
