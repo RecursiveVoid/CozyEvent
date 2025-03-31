@@ -53,7 +53,7 @@ describe('CozyEventProvider', () => {
 
     expect(screen.getByText('Match')).toBeInTheDocument();
   });
- 
+
   // Tests that the CozyEventProvider throws an error when a non-CozyEvent object is provided as the instance.
   it('throws an error if an invalid instance is provided', () => {
     const invalidInstance = {} as CozyEvent;
@@ -70,10 +70,10 @@ describe('CozyEventProvider', () => {
 
   // Tests that the CozyEventProvider throws an error for various invalid instance types like null, plain objects, and numbers.
   it('throws error for non-CozyEvent instances', () => {
-    const invalidInstances = [null, {}, 123]; 
-    
+    const invalidInstances = [null, {}, 123];
+
     invalidInstances.forEach((instance) => {
-      expect(() => 
+      expect(() =>
         render(
           <CozyEventProvider instance={instance as any}>
             <div>Test</div>
@@ -86,20 +86,20 @@ describe('CozyEventProvider', () => {
 
   // Tests that if no specific instance is provided to CozyEventProvider, it defaults to using the global CozyEvent instance.
   it('uses global instance when no instance is provided', () => {
-  const TestComponentDefault = () => {
-    const emitter = useContext(CozyEventContext)!;
-    return <div>{emitter === globalCozyEventInstance ? 'Global' : 'Custom'}</div>;
-  };
+    const TestComponentDefault = () => {
+      const emitter = useContext(CozyEventContext)!;
+      return <div>{emitter === globalCozyEventInstance ? 'Global' : 'Custom'}</div>;
+    };
 
-  render(
-    <CozyEventProvider> {/* Sin "instance" */}
-      <TestComponentDefault />
-    </CozyEventProvider>
-  );
+    render(
+      <CozyEventProvider> {/* Sin "instance" */}
+        <TestComponentDefault />
+      </CozyEventProvider>
+    );
 
-  expect(screen.getByText('Global')).toBeInTheDocument();
-});
-  
+    expect(screen.getByText('Global')).toBeInTheDocument();
+  });
+
 });
 
 describe('useCozyEvent', () => {
@@ -184,25 +184,25 @@ describe('useCozyEvent', () => {
     expect(spyOff).toHaveBeenCalledTimes(1);
     expect(spyOn).toHaveBeenCalledTimes(2);
   });
-  
+
 
   // Tests that when the useCozyEvent hook is used outside of a CozyEventProvider, it correctly uses the global CozyEvent instance.
   it('uses global CozyEvent instance when no provider is present', () => {
-      const mockCallback = jest.fn();
-  
-      const TestComponentGlobal = () => {
-        useCozyEvent('global-test', mockCallback);
-        return <div>Global Test</div>;
-      };
-  
-      render(<TestComponentGlobal />);
-  
-      act(() => {
-        // Use the same instance that useCozyEvent uses internally
-        globalCozyEventInstance.emit('global-test', 'global-data');
-      });
-  
-      expect(mockCallback).toHaveBeenCalledWith('global-data');
+    const mockCallback = jest.fn();
+
+    const TestComponentGlobal = () => {
+      useCozyEvent('global-test', mockCallback);
+      return <div>Global Test</div>;
+    };
+
+    render(<TestComponentGlobal />);
+
+    act(() => {
+      // Use the same instance that useCozyEvent uses internally
+      globalCozyEventInstance.emit('global-test', 'global-data');
+    });
+
+    expect(mockCallback).toHaveBeenCalledWith('global-data');
   });
 
 
@@ -286,7 +286,7 @@ describe('useCozyEvent', () => {
   });
 
 
-   // Tests that the useCozyEvent hook correctly manages subscriptions and unsubscriptions during rapid re-renders of the component.
+  // Tests that the useCozyEvent hook correctly manages subscriptions and unsubscriptions during rapid re-renders of the component.
   it('handles rapid component updates correctly', () => {
     const emitterRapid = new CozyEvent();
     const mockCallback = jest.fn();
@@ -367,18 +367,18 @@ describe('useCozyEvent', () => {
     const emitter = new CozyEvent();
     const mockCallback = jest.fn();
     const spyOn = jest.spyOn(emitter, 'on');
-  
+
     const TestComponent = () => {
-      useCozyEvent('event', mockCallback, 'ns');
+      useCozyEvent('event', mockCallback, { namespace: 'ns' });
       return <div>Test</div>;
     };
-  
+
     render(
       <CozyEventProvider instance={emitter}>
         <TestComponent />
       </CozyEventProvider>
     );
-  
+
     expect(spyOn).toHaveBeenCalledWith('ns:event', mockCallback);
   });
 
@@ -387,43 +387,43 @@ describe('useCozyEvent', () => {
   it('returns the emitter instance from provider', () => {
     const customEmitter = new CozyEvent();
     let hookEmitter;
-  
+
     const TestComponent = () => {
       hookEmitter = useCozyEvent('test', jest.fn());
       return <div>Test</div>;
     };
-  
+
     render(
       <CozyEventProvider instance={customEmitter}>
         <TestComponent />
       </CozyEventProvider>
     );
-  
+
     expect(hookEmitter).toBe(customEmitter);
   });
-  
+
 
   // Tests that when no CozyEventProvider is present, the useCozyEvent hook returns the global CozyEvent instance.
   it('returns global instance when no provider', () => {
     let hookEmitter;
-  
+
     const TestComponent = () => {
       hookEmitter = useCozyEvent('test', jest.fn());
       return <div>Test</div>;
     };
-  
+
     render(<TestComponent />);
-  
+
     expect(hookEmitter).toBe(globalCozyEventInstance);
   });
 
 
   it('throws an error if no instance is found for the given ID', () => {
     const TestComponent = () => {
-      useCozyEvent('test-event', jest.fn(), undefined, 'nonexistent-id');
+      useCozyEvent('test-event', jest.fn(), { id: 'nonexistent-id' });
       return <div>Test</div>;
     };
-  
+
     expect(() => {
       render(<TestComponent />);
     }).toThrow('No CozyEvent instance found for id: nonexistent-id');

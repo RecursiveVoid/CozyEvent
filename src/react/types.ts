@@ -18,3 +18,19 @@ export interface CozyEventProviderProps {
   */
   id?: string;
 }
+
+
+/**
+ * Options for the `useCozyEvent` hook.
+ */
+export interface UseCozyEventOptions {
+  /**
+   * An optional namespace to scope the event.
+   */
+  namespace?: string;
+
+  /**
+   * An optional identifier for the CozyEvent instance.
+   */
+  id?: string;
+}
