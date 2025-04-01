@@ -34,39 +34,39 @@ import { UseCozyEventOptions } from './types';
  *   console.log('Update event:', data);
  * }, { namespace: 'app', id: 'unique-id' });
  */
-export const useCozyEvent = <T = any> (
+export const useCozyEvent = <T = any>(
   eventName: string,
   callback: (data: any) => void,
   options?: UseCozyEventOptions
 ) => {
-  
+
   const { namespace, id } = options || {};
   const emitter = id
-  ? getCozyEventInstanceById(id)
-  : useContext(CozyEventContext) || globalCozyEventInstance;
+    ? getCozyEventInstanceById(id)
+    : useContext(CozyEventContext) || globalCozyEventInstance;
 
-  // Validate the emitter
+
   if (!emitter) {
     throw new Error(`No CozyEvent instance found for id: ${id}`);
   }
 
-  // Validate eventName
+
   if (typeof eventName !== 'string' || eventName.trim() === '') {
     throw new Error('Invalid eventName provided to useCozyEvent. It must be a non-empty string.');
   }
 
-  // Validate callback
+
   if (typeof callback !== 'function') {
     throw new Error('Invalid callback provided to useCozyEvent. It must be a function.');
   }
 
-  // Memorize the full event name
+
   const fullEventName = useMemo(
     () => (namespace ? `${namespace}:${eventName}` : eventName),
     [namespace, eventName]
   );
 
-  // Memorize the callback to avoid unnecessary re-registrations
+
   const stableCallback = useCallback(callback, [callback]);
 
   useEffect(() => {

@@ -16,18 +16,18 @@ import { registerCozyEventInstance, unregisterCozyEventInstance } from './instan
  * @returns {JSX.Element} A React context provider wrapping the children with the CozyEvent instance.
  * @throws {Error} If the provided instance is not a valid CozyEvent instance.
  */
-export const globalCozyEventInstance = new CozyEvent(); // Use the global instance if there is no context
+export const globalCozyEventInstance = new CozyEvent(); 
 export const CozyEventProvider: FC<CozyEventProviderProps> = ({
   instance = globalCozyEventInstance,
   children,
-  id = 'default', // Default ID for the provider
+  id = 'default'
 }) => {
-  // Validate the instance
+  
   if (!(instance instanceof CozyEvent)) {
     throw new Error('Invalid CozyEvent instance provided to CozyEventProvider');
   }
 
-   // Register and unregister the instance with useEffect
+   
    useEffect(() => {
     registerCozyEventInstance(id, instance);
     return () => {
@@ -35,7 +35,7 @@ export const CozyEventProvider: FC<CozyEventProviderProps> = ({
     };
   }, [id, instance]);
   
-  // Memorize the context value to avoid unnecessary re-renders
+  
   const contextValue = useMemo(() => instance, [instance]);
 
   return (
