@@ -162,6 +162,269 @@ eventEmitter.destroy();
 eventEmitter.removeAllListeners();
 ```
 
+## CozyEvent React Integration
+
+CozyEvent provides seamless integration with React through a context provider (`CozyEventProvider`), a custom hook (`useCozyEvent`), and a centralized instance registry. These tools allow you to easily manage event-driven communication in your React applications.
+
+With CozyEvent React integration, you can:
+- Emit and listen to events in a declarative way.
+- Organize events using namespaces to avoid conflicts.
+- Automatically handle event subscriptions and cleanups with React's lifecycle.
+- Use multiple instances of `CozyEventProvider` to isolate event handling in different parts of your application.
+- **Access and manage instances centrally** using the instance registry.
+
+This section explains how to use the React integration with practical examples and best practices.
+
+---
+
+### Components and Hooks
+
+#### `CozyEventProvider`
+
+The `CozyEventProvider` is a React component that provides a `CozyEvent` instance to all its child components via React Context. If no custom instance is provided, a global instance is used by default. You can also provide an optional `id` to identify the provider instance, which is useful for debugging or managing multiple instances.
+
+**Props:**
+
+- `instance` (optional): A custom `CozyEvent` instance. If omitted, the global instance is used.
+- `children`: The child components that will have access to the event context.
+- `id` (optional): An identifier for the provider instance. Defaults to `'default'`.
+
+
+#### `useCozyEvent`
+
+The `useCozyEvent` hook allows components to subscribe to specific events emitted by the `CozyEvent` instance provided by the nearest `CozyEventProvider`.
+
+**Parameters:**
+
+- `eventName` (string, required): The name of the event to subscribe to. Must be a non-empty string.
+- `callback` (function, required): The function to execute when the event is emitted. Must be a valid function.
+- `options` (optional, object): An object to scope the event subscription.
+  - `namespace` (optional, string): A namespace to scope the event subscription.
+  - `id` (optional, string): The identifier of the `CozyEventProvider` instance to use. If omitted, the nearest provider or the global instance is used.
+
+**Returns:**
+
+- The `CozyEvent` instance being used.
+
+
+### Centralized Instance Registry
+
+CozyEvent includes a centralized instance registry that allows you to register and retrieve `CozyEvent` instances by their `id`. This is particularly useful for managing multiple instances in large applications or debugging.
+
+
+#### **Functions**
+
+##### `registerCozyEventInstance(id: string, instance: CozyEvent): void`
+
+Registers a `CozyEvent` instance with a unique `id`.
+
+> **Note:** You don't need to manually register the instance before creating the `CozyEventProvider`. The provider will automatically register the instance with the given `id`.
+
+```typescript
+import { registerCozyEventInstance } from 'cozyevent';
+
+const emitter = new CozyEvent();
+registerCozyEventInstance('custom-id', emitter);
+
+```
+
+
+
+#### `getCozyEventInstanceById(id: string): CozyEvent | undefined`
+
+Retrieves a CozyEvent instance by its id. Returns undefined if no instance is found.
+
+```typescript
+import { getCozyEventInstanceById } from 'cozyevent';
+
+const emitter = getCozyEventInstanceById('custom-id');
+if (emitter) {
+  emitter.emit('event-name', 'data');
+}
+
+```
+
+---
+
+### Basic Example
+
+Here’s a simple example of how to use `CozyEventProvider` and `useCozyEvent` in a React application:
+
+```tsx
+import React from 'react';
+import { CozyEventProvider, useCozyEvent } from 'cozyevent';
+
+const EventListener = () => {
+  useCozyEvent('my-event', (data) => {
+    console.log('Event received:', data);
+  });
+
+  return <div>Listening for events...</div>;
+};
+
+const App = () => (
+  <CozyEventProvider>
+    <EventListener />
+  </CozyEventProvider>
+);
+
+export default App;
+```
+
+---
+
+### Real-World Use Cases
+
+#### 1. Using CozyEventProvider Without Manual Registration
+
+You can create a `CozyEventProvider` without manually registering the instance. The provider will automatically register the instance with the given `id`.
+
+```tsx
+import React from 'react';
+import { CozyEventProvider, useCozyEvent } from 'cozyevent';
+
+const EventEmitter = () => {
+  const handleClick = () => {
+    const emitter = getCozyEventInstanceById('default');
+    emitter?.emit('button-click', 'Button was clicked!');
+  };
+
+  return <button onClick={handleClick}>Emit Event</button>;
+};
+
+const EventListener = () => {
+  useCozyEvent('button-click', (message) => {
+    alert(`Event received: ${message}`);
+  });
+
+  return <div>Waiting for events...</div>;
+};
+
+const App = () => (
+  <CozyEventProvider id="default">
+    <EventEmitter />
+    <EventListener />
+  </CozyEventProvider>
+);
+
+export default App;
+```
+
+---
+
+#### 2. **Using Namespaces**
+
+You can use the `namespace` parameter to organize events and avoid conflicts.
+
+```tsx
+const EventListenerWithNamespace = () => {
+  useCozyEvent(
+    'event',
+    (data) => {
+      console.log('Event with namespace received:', data);
+    },
+    { namespace: 'namespace' }
+  );
+
+  return <div>Listening for namespaced events...</div>;
+};
+```
+
+---
+
+#### 3. **Lifecycle Management**
+
+The `useCozyEvent` hook automatically handles subscription and cleanup when the component mounts and unmounts.
+
+```tsx
+const LifecycleExample = () => {
+  useCozyEvent('lifecycle-event', (data) => {
+    console.log('Lifecycle event received:', data);
+  });
+
+  return <div>This component handles lifecycle events.</div>;
+};
+```
+
+---
+
+#### 4. **Handling Multiple Instances**
+
+You can use multiple `CozyEventProvider` instances to isolate event handling in different parts of your application. Each provider can have its own `CozyEvent` instance.
+
+```tsx
+const App = () => {
+  return (
+    <>
+      <CozyEventProvider id="auth">
+        <AuthModule />
+      </CozyEventProvider>
+      <CozyEventProvider id="notifications">
+        <NotificationModule />
+      </CozyEventProvider>
+    </>
+  );
+};
+
+const AuthModule = () => {
+  useCozyEvent(
+    'login',
+    (data) => {
+      console.log('User logged in:', data);
+    },
+    { id: 'auth' }
+  );
+
+  return <div>Auth Module</div>;
+};
+
+const NotificationModule = () => {
+  useCozyEvent(
+    'new-message',
+    (data) => {
+      console.log('New message:', data);
+    },
+    { id: 'notifications' }
+  );
+
+  return <div>Notification Module</div>;
+};
+```
+
+---
+
+#### 5. **Global Instance**
+
+If you don’t use a `CozyEventProvider`, the `useCozyEvent` hook will fall back to using a global `CozyEvent` instance.
+
+```tsx
+const GlobalEventListener = () => {
+  useCozyEvent('global-event', (data) => {
+    console.log('Global event received:', data);
+  });
+
+  return <div>Listening for global events...</div>;
+};
+```
+
+---
+
+### Best Practices
+
+- **Use descriptive event names:** Avoid ambiguous names to prevent conflicts.
+- **Leverage namespaces:** Use the `namespace` parameter to organize events logically.
+- **Clean up listeners:** The `useCozyEvent` hook automatically handles cleanup, but avoid manually duplicating subscriptions.
+- **Use custom instances when needed:** For better modularity, use custom `CozyEvent` instances in different parts of your application.
+- **Use `id` for debugging:** When using multiple instances, assign meaningful `id`s to `CozyEventProvider` instances to make debugging easier.
+- **Leverage the registry for debugging:** Use `getCozyEventInstanceById` or `registerCozyEventInstance` to inspect and debug instances during development.
+
+---
+
+### Summary
+
+The React integration for CozyEvent provides a simple and powerful way to manage events in your React applications. With `CozyEventProvider` and `useCozyEvent`, you can easily emit and listen to events, organize them with namespaces, and ensure proper lifecycle management. The support for multiple instances makes it highly scalable and modular, suitable for both small and large-scale projects.
+
+
 ## Benchmark Results
 
 ### `Emit:`
