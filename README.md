@@ -37,14 +37,28 @@ A fine-tailored ecosystem of TypeScript libraries designed for your everyday nee
 
 You can install CozyEvent via npm or yarn:
 
+#### Light version - non react (only 341 Bytes)
+
 ```sh
-npm install cozyevent
+npm install cozyevent@latest-light
 ```
 
 or
 
 ```sh
-yarn add cozyevent
+yarn add cozyevent@latest-light
+```
+
+#### Or With React supported version
+
+```sh
+npm install cozyevent@latest-react
+```
+
+or
+
+```sh
+yarn add cozyevent@latest-react
 ```
 
 ## Usage
