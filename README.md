@@ -1,6 +1,6 @@
 ![](https://i.imgur.com/lU4VqXb.png)
 
-# CozyEvent — World's fastest, Lightweight Event Emitter
+# CozyEvent — World's fastest, Lightweight Event Emitter also for React
 
 ![npm](https://img.shields.io/npm/v/cozyevent)
 [![Build Size](https://img.shields.io/bundlephobia/minzip/cozyevent?label=bundle%20size)](https://bundlephobia.com/result?p=cozyevent)
@@ -11,7 +11,7 @@
 [![withlove](https://img.shields.io/badge/made_with-love_<3-ff69b4.svg?style=flat-square)]()
 [![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 
-A **lightweight** ; only **341 Bytes** (bundle size), might be the **worlds fastest**, microtask-based asynchronous and synchronous event emitter for JavaScript/TypeScript .Check the [benchmark results below](#benchmark-results)!
+A **lightweight** ; only **341 Bytes** (bundle size), might be the **worlds fastest**, microtask-based asynchronous and synchronous event emitter for JavaScript/TypeScript. Also for [**REACT**](#cozyevent-react-integration)! Check the [benchmark results below](#benchmark-results)!
 
 ### Whats COZY stands for;
 
@@ -21,6 +21,7 @@ A fine-tailored ecosystem of TypeScript libraries designed for your everyday nee
 
 ## Change log
 
+- v.1.4.0: **React Support**; CozyEvent has now react support! (Special thanks to [jeangq24 ](https://github.com/jeangq24))
 - v.1.2.0: Performance improvement; **22x faster** than v.1.1.0 (see the [benchmark below](#benchmark-results))
 - v1.1.0: Performance improvement; **4x faster** than version v1.0 (see the benchmark bellow)
 
@@ -167,6 +168,7 @@ eventEmitter.removeAllListeners();
 CozyEvent provides seamless integration with React through a context provider (`CozyEventProvider`), a custom hook (`useCozyEvent`), and a centralized instance registry. These tools allow you to easily manage event-driven communication in your React applications.
 
 With CozyEvent React integration, you can:
+
 - Emit and listen to events in a declarative way.
 - Organize events using namespaces to avoid conflicts.
 - Automatically handle event subscriptions and cleanups with React's lifecycle.
@@ -189,7 +191,6 @@ The `CozyEventProvider` is a React component that provides a `CozyEvent` instanc
 - `children`: The child components that will have access to the event context.
 - `id` (optional): An identifier for the provider instance. Defaults to `'default'`.
 
-
 #### `useCozyEvent`
 
 The `useCozyEvent` hook allows components to subscribe to specific events emitted by the `CozyEvent` instance provided by the nearest `CozyEventProvider`.
@@ -206,11 +207,9 @@ The `useCozyEvent` hook allows components to subscribe to specific events emitte
 
 - The `CozyEvent` instance being used.
 
-
 ### Centralized Instance Registry
 
 CozyEvent includes a centralized instance registry that allows you to register and retrieve `CozyEvent` instances by their `id`. This is particularly useful for managing multiple instances in large applications or debugging.
-
 
 #### **Functions**
 
@@ -225,10 +224,7 @@ import { registerCozyEventInstance } from 'cozyevent';
 
 const emitter = new CozyEvent();
 registerCozyEventInstance('custom-id', emitter);
-
 ```
-
-
 
 #### `getCozyEventInstanceById(id: string): CozyEvent | undefined`
 
@@ -241,7 +237,6 @@ const emitter = getCozyEventInstanceById('custom-id');
 if (emitter) {
   emitter.emit('event-name', 'data');
 }
-
 ```
 
 ---
@@ -423,7 +418,6 @@ const GlobalEventListener = () => {
 ### Summary
 
 The React integration for CozyEvent provides a simple and powerful way to manage events in your React applications. With `CozyEventProvider` and `useCozyEvent`, you can easily emit and listen to events, organize them with namespaces, and ensure proper lifecycle management. The support for multiple instances makes it highly scalable and modular, suitable for both small and large-scale projects.
-
 
 ## Benchmark Results
 

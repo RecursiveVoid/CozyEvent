@@ -1,7 +1,7 @@
 {
   "name": "cozyevent",
-  "version": "1.3.3",
-  "description": "World's fastest, Lightweight Async/Sync Event Emitter",
+  "version": "1.4.0",
+  "description": "World's fastest, Lightweight Async/Sync Event Emitter, also for React",
   "main": "dist/index.cjs",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
@@ -33,7 +33,12 @@
     "fast",
     "lightweight",
     "benchmark",
-    "eventemitter2"
+    "eventemitter2",
+    "react",
+    "react-support",
+    "react-event-emitter",
+    "react-event-listener",
+    "react-event"
   ],
   "author": "M. Ergin Turk",
   "license": "MIT",
@@ -77,6 +82,7 @@
     "dist/",
     "!dist/core/",
     "!dist/src/",
+    "!dist/react/",
     "!dist/__tests__/"
   ],
   "exports": {

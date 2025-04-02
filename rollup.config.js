@@ -29,6 +29,7 @@ export default [
         declaration: true,
         declarationMap: false,
         noEmitOnError: true,
+        jsx: 'react-jsx',
       }),
       terser(),
     ],
