@@ -2,8 +2,9 @@ import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import typescript from '@rollup/plugin-typescript';
 import dts from 'rollup-plugin-dts';
-import wasm from '@rollup/plugin-wasm';
+import strip from 'rollup-plugin-strip';
 import terser from '@rollup/plugin-terser';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 export default [
   {
@@ -20,10 +21,10 @@ export default [
         sourcemap: true,
       },
     ],
+    external: ['react', 'react-dom'],
     plugins: [
       resolve(),
       commonjs(),
-      wasm(),
       typescript({
         tsconfig: './tsconfig.json',
         declaration: true,
@@ -31,7 +32,17 @@ export default [
         noEmitOnError: true,
         jsx: 'react-jsx',
       }),
-      terser(),
+      terser({
+        compress: {
+          drop_console: true,
+          pure_getters: true,
+          passes: 2,
+        },
+      }),
+      strip({
+        functions: ['console.*', 'assert.*'],
+      }),
+      visualizer({ open: true }),
     ],
   },
   {
