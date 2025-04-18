@@ -52,13 +52,13 @@ yarn add cozyevent@latest-light
 #### Or With React supported version
 
 ```sh
-npm install cozyevent@latest-react
+npm install cozyevent
 ```
 
 or
 
 ```sh
-yarn add cozyevent@latest-react
+yarn add cozyevent
 ```
 
 ## Usage
