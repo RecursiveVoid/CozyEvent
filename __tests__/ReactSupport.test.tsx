@@ -1,455 +1,365 @@
-import { useContext } from 'react';
-import { render, screen, act } from '@testing-library/react';
-import { CozyEventProvider } from '../src/react/CozyEventProvider';
-import { useCozyEvent } from '../src/react/useCozyEvent';
-import { CozyEvent } from '../src/core/CozyEvent';
-import { CozyEventContext } from '../src/react/context';
-import { globalCozyEventInstance } from '../src/react/CozyEventProvider';
-import { registerCozyEventInstance, getCozyEventInstanceById } from '../src/react/instanceRegistry';
-import '@testing-library/jest-dom';
+/** @jest-environment jsdom */
+import { StrictMode, useState } from 'react';
+import { render, act, cleanup } from '@testing-library/react';
+import { CozyEvent } from 'cozyevent';
+import { useCozyEvent } from 'cozyevent/react';
 
-// Mock console.warn
-const originalWarn = console.warn;
-beforeAll(() => {
-  console.warn = jest.fn();
+type Events = { ping: number; other: string; 'hello world': { name: string } };
+
+/** Counts live registrations for an event (reads internal storage; test-only). */
+const liveCount = (e: CozyEvent<any>, event: string): number =>
+  ((e as any)._e[event] as unknown[] | undefined)?.length ?? 0;
+
+// `remove` spies on the internal remover that both `off` and the unsubscribe function returned by
+// `on` use (unsubscribe does not go through the public `off`, so subclass overrides never see
+// internal records). Test-only access to a private member.
+const spyOnEmitter = (e: CozyEvent<any>) => ({
+  on: jest.spyOn(e, 'on'),
+  remove: jest.spyOn(e as any, '_r'),
 });
-afterAll(() => {
-  console.warn = originalWarn;
+
+afterEach(() => {
+  cleanup();
+  jest.restoreAllMocks();
 });
 
-describe('CozyEventProvider', () => {
-  // Tests that the CozyEventProvider provides a default instance of the CozyEvent class through the context.
-  it('provides a default instance of CozyEvent', () => {
-    let emitterInstance: CozyEvent;
-
-    const TestComponent = () => {
-      emitterInstance = useContext(CozyEventContext)!;
-      return <div>Test</div>;
-    };
-
-    render(
-      <CozyEventProvider instance={new CozyEvent()}>
-        <TestComponent />
-      </CozyEventProvider>
-    );
-
-    expect(emitterInstance).toBeInstanceOf(CozyEvent);
+describe('useCozyEvent (cozyevent/react)', () => {
+  it('subscribes on mount and receives the payload', () => {
+    const e = new CozyEvent<Events>();
+    const got: number[] = [];
+    function C() {
+      useCozyEvent(e, 'ping', (n) => got.push(n));
+      return null;
+    }
+    render(<C />);
+    expect(liveCount(e, 'ping')).toBe(1);
+    act(() => e.emit('ping', 7));
+    act(() => e.emit('ping', 8));
+    expect(got).toEqual([7, 8]);
   });
 
-  // Tests that the CozyEventProvider can be initialized with a custom instance of CozyEvent.
-  it('allows injecting a custom instance', () => {
-    const customEmitter = new CozyEvent();
-
-    const TestComponent = () => {
-      const emitter = useContext(CozyEventContext);
-      return <div>{emitter === customEmitter ? 'Match' : 'No match'}</div>;
-    };
-
-    render(
-      <CozyEventProvider instance={customEmitter}>
-        <TestComponent />
-      </CozyEventProvider>
-    );
-
-    expect(screen.getByText('Match')).toBeInTheDocument();
-  });
-
-  // Tests that the CozyEventProvider throws an error when a non-CozyEvent object is provided as the instance.
-  it('throws an error if an invalid instance is provided', () => {
-    const invalidInstance = {} as CozyEvent;
-
-    expect(() => {
-      render(
-        <CozyEventProvider instance={invalidInstance}>
-          <div>Test</div>
-        </CozyEventProvider>
-      );
-    }).toThrow('Invalid CozyEvent instance provided to CozyEventProvider');
-  });
-
-
-  // Tests that the CozyEventProvider throws an error for various invalid instance types like null, plain objects, and numbers.
-  it('throws error for non-CozyEvent instances', () => {
-    const invalidInstances = [null, {}, 123];
-
-    invalidInstances.forEach((instance) => {
-      expect(() =>
-        render(
-          <CozyEventProvider instance={instance as any}>
-            <div>Test</div>
-          </CozyEventProvider>
-        )
-      ).toThrow('Invalid CozyEvent instance provided to CozyEventProvider');
+  it('works with emitAsync', async () => {
+    const e = new CozyEvent<Events>();
+    const got: number[] = [];
+    function C() {
+      useCozyEvent(e, 'ping', (n) => got.push(n));
+      return null;
+    }
+    render(<C />);
+    await act(async () => {
+      e.emitAsync('ping', 1);
+      expect(got).toEqual([]);
+      await Promise.resolve();
     });
+    expect(got).toEqual([1]);
   });
 
-
-  // Tests that if no specific instance is provided to CozyEventProvider, it defaults to using the global CozyEvent instance.
-  it('uses global instance when no instance is provided', () => {
-    const TestComponentDefault = () => {
-      const emitter = useContext(CozyEventContext)!;
-      return <div>{emitter === globalCozyEventInstance ? 'Global' : 'Custom'}</div>;
-    };
-
-    render(
-      <CozyEventProvider> {/* Sin "instance" */}
-        <TestComponentDefault />
-      </CozyEventProvider>
-    );
-
-    expect(screen.getByText('Global')).toBeInTheDocument();
+  it('receives undefined when emitted without payload and ignores other events', () => {
+    const e = new CozyEvent<Events>();
+    const fn = jest.fn();
+    function C() {
+      useCozyEvent(e, 'ping', fn);
+      return null;
+    }
+    render(<C />);
+    act(() => e.emit('other', 'x'));
+    expect(fn).not.toHaveBeenCalled();
+    act(() => e.emit('ping'));
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(fn).toHaveBeenCalledWith(undefined);
   });
 
-});
+  it('inline arrow listener re-rendered many times subscribes exactly once', () => {
+    const e = new CozyEvent<Events>();
+    const spies = spyOnEmitter(e);
+    const calls: number[] = [];
+    function C({ tick }: { tick: number }) {
+      useCozyEvent(e, 'ping', (n) => calls.push(n + tick * 0));
+      return <span>{tick}</span>;
+    }
+    const { rerender } = render(<C tick={0} />);
+    for (let i = 1; i <= 100; i++) rerender(<C tick={i} />);
+    expect(spies.on).toHaveBeenCalledTimes(1);
+    expect(spies.remove).not.toHaveBeenCalled();
+    expect(liveCount(e, 'ping')).toBe(1);
+    act(() => e.emit('ping', 5));
+    expect(calls).toEqual([5]);
+  });
 
-describe('useCozyEvent', () => {
+  it('state-driven re-renders (setState inside the listener) do not resubscribe', () => {
+    const e = new CozyEvent<Events>();
+    const spies = spyOnEmitter(e);
+    let renders = 0;
+    function C() {
+      const [n, setN] = useState(0);
+      renders++;
+      useCozyEvent(e, 'ping', (p) => setN(n + p));
+      return <span data-testid="v">{n}</span>;
+    }
+    const { getByTestId } = render(<C />);
+    for (let i = 0; i < 10; i++) act(() => e.emit('ping', 1));
+    // Uses `n` from the closure: only correct if the latest listener is always used.
+    expect(getByTestId('v').textContent).toBe('10');
+    expect(renders).toBeGreaterThan(10);
+    expect(spies.on).toHaveBeenCalledTimes(1);
+    expect(spies.remove).not.toHaveBeenCalled();
+  });
 
-  // Tests that the useCozyEvent hook correctly subscribes a callback to an event and unsubscribes it when the component unmounts.
-  it('subscribes and unsubscribes events correctly', () => {
-    const mockCallback = jest.fn();
-    const emitter = new CozyEvent();
+  it('uses the latest listener closure after rerender (no stale closure)', () => {
+    const e = new CozyEvent<Events>();
+    const seen: string[] = [];
+    function C({ label }: { label: string }) {
+      useCozyEvent(e, 'ping', (n) => seen.push(`${label}:${n}`));
+      return null;
+    }
+    const { rerender } = render(<C label="a" />);
+    act(() => e.emit('ping', 1));
+    rerender(<C label="b" />);
+    act(() => e.emit('ping', 2));
+    rerender(<C label="c" />);
+    rerender(<C label="d" />);
+    act(() => e.emit('ping', 3));
+    expect(seen).toEqual(['a:1', 'b:2', 'd:3']);
+  });
 
-    const TestComponent = () => {
-      useCozyEvent('test-event', mockCallback);
-      return <div>Test</div>;
-    };
+  it('switching to a different listener function (not inline) uses the new one without resubscribing', () => {
+    const e = new CozyEvent<Events>();
+    const spies = spyOnEmitter(e);
+    const f1 = jest.fn();
+    const f2 = jest.fn();
+    function C({ fn }: { fn: (n: number) => void }) {
+      useCozyEvent(e, 'ping', fn);
+      return null;
+    }
+    const { rerender } = render(<C fn={f1} />);
+    rerender(<C fn={f2} />);
+    act(() => e.emit('ping', 1));
+    expect(f1).not.toHaveBeenCalled();
+    expect(f2).toHaveBeenCalledWith(1);
+    expect(spies.on).toHaveBeenCalledTimes(1);
+  });
 
-    const { unmount } = render(
-      <CozyEventProvider instance={emitter}>
-        <TestComponent />
-      </CozyEventProvider>
-    );
-
-    // Verify subscription
-    act(() => {
-      emitter.emit('test-event', 'payload');
-    });
-    expect(mockCallback).toHaveBeenCalledWith('payload');
-
-    // Verify cleanup
+  it('unsubscribes on unmount', () => {
+    const e = new CozyEvent<Events>();
+    const spies = spyOnEmitter(e);
+    const fn = jest.fn();
+    function C() {
+      useCozyEvent(e, 'ping', fn);
+      return null;
+    }
+    const { unmount } = render(<C />);
+    expect(liveCount(e, 'ping')).toBe(1);
     unmount();
-    emitter.emit('test-event', 'payload2');
-    expect(mockCallback).toHaveBeenCalledTimes(1); // Should not be called again
+    expect(spies.remove).toHaveBeenCalledTimes(1);
+    expect(liveCount(e, 'ping')).toBe(0);
+    expect(Object.keys((e as any)._e)).toEqual([]);
+    e.emit('ping', 1);
+    expect(fn).not.toHaveBeenCalled();
   });
 
+  it('unmount removes only its own registration, not another subscriber using the same emitter/event', () => {
+    const e = new CozyEvent<Events>();
+    const outside = jest.fn();
+    e.on('ping', outside);
+    const inside = jest.fn();
+    function C() {
+      useCozyEvent(e, 'ping', inside);
+      return null;
+    }
+    const { unmount } = render(<C />);
+    unmount();
+    e.emit('ping', 1);
+    expect(outside).toHaveBeenCalledTimes(1);
+    expect(inside).not.toHaveBeenCalled();
+  });
 
-  // Tests that when the callback function passed to useCozyEvent changes, the hook updates the event listener.
-  it('updates the listener when the callback changes', () => {
-    const emitter = new CozyEvent();
-    const spyOn = jest.spyOn(emitter, 'on');
-    const spyOff = jest.spyOn(emitter, 'off');
+  it('resubscribes when the event prop changes and removes the old subscription', () => {
+    const e = new CozyEvent<Events>();
+    const spies = spyOnEmitter(e);
+    const got: Array<[string, unknown]> = [];
+    function C({ ev }: { ev: 'ping' | 'other' }) {
+      useCozyEvent(e, ev, (p: unknown) => got.push([ev, p]));
+      return null;
+    }
+    const { rerender, unmount } = render(<C ev="ping" />);
+    rerender(<C ev="other" />);
+    expect(spies.on).toHaveBeenCalledTimes(2);
+    expect(spies.remove).toHaveBeenCalledTimes(1);
+    expect(liveCount(e, 'ping')).toBe(0);
+    expect(liveCount(e, 'other')).toBe(1);
+    act(() => e.emit('ping', 1));
+    act(() => e.emit('other', 'x'));
+    expect(got).toEqual([['other', 'x']]);
+    // and back again
+    rerender(<C ev="ping" />);
+    act(() => e.emit('other', 'y'));
+    act(() => e.emit('ping', 2));
+    expect(got).toEqual([
+      ['other', 'x'],
+      ['ping', 2],
+    ]);
+    unmount();
+    expect(Object.keys((e as any)._e)).toEqual([]);
+  });
 
-    const { rerender } = render(
-      <CozyEventProvider instance={emitter}>
-        <TestComponent callback={() => { }} />
-      </CozyEventProvider>
+  it('resubscribes when the emitter prop changes and removes the old subscription', () => {
+    const e1 = new CozyEvent<Events>();
+    const e2 = new CozyEvent<Events>();
+    const s1 = spyOnEmitter(e1);
+    const s2 = spyOnEmitter(e2);
+    const fn = jest.fn();
+    function C({ em }: { em: CozyEvent<Events> }) {
+      useCozyEvent(em, 'ping', fn);
+      return null;
+    }
+    const { rerender, unmount } = render(<C em={e1} />);
+    rerender(<C em={e2} />);
+    expect(s1.on).toHaveBeenCalledTimes(1);
+    expect(s1.remove).toHaveBeenCalledTimes(1);
+    expect(s2.on).toHaveBeenCalledTimes(1);
+    expect(liveCount(e1, 'ping')).toBe(0);
+    expect(liveCount(e2, 'ping')).toBe(1);
+    act(() => e1.emit('ping', 1));
+    expect(fn).not.toHaveBeenCalled();
+    act(() => e2.emit('ping', 2));
+    expect(fn).toHaveBeenCalledWith(2);
+    unmount();
+    expect(s2.remove).toHaveBeenCalledTimes(1);
+    expect(liveCount(e2, 'ping')).toBe(0);
+  });
+
+  it('React.StrictMode double effects leave exactly one live listener', () => {
+    const e = new CozyEvent<Events>();
+    const fn = jest.fn();
+    function C({ t }: { t: number }) {
+      useCozyEvent(e, 'ping', (n) => fn(n, t));
+      return null;
+    }
+    const { rerender, unmount } = render(
+      <StrictMode>
+        <C t={0} />
+      </StrictMode>,
     );
-
-    const newCallback = jest.fn();
     rerender(
-      <CozyEventProvider instance={emitter}>
-        <TestComponent callback={newCallback} />
-      </CozyEventProvider>
+      <StrictMode>
+        <C t={1} />
+      </StrictMode>,
     );
-
-    expect(spyOff).toHaveBeenCalledTimes(1);
-    expect(spyOn).toHaveBeenCalledTimes(2);
+    expect(liveCount(e, 'ping')).toBe(1);
+    act(() => e.emit('ping', 9));
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(fn).toHaveBeenCalledWith(9, 1);
+    unmount();
+    expect(liveCount(e, 'ping')).toBe(0);
   });
 
-
-  // Tests that the useCozyEvent hook correctly handles changes to the event name, unsubscribing from the old event and subscribing to the new one. 
-  it('handles dynamic event names correctly', () => {
-    const emitter = new CozyEvent();
-    const mockCallback = jest.fn();
-    const spyOn = jest.spyOn(emitter, 'on');
-    const spyOff = jest.spyOn(emitter, 'off');
-
-    const TestComponent = ({ eventName }: { eventName: string }) => {
-      useCozyEvent(eventName, mockCallback);
-      return <div>Dynamic Test</div>;
-    };
-
-    const { rerender } = render(
-      <CozyEventProvider instance={emitter}>
-        <TestComponent eventName="event-1" />
-      </CozyEventProvider>
-    );
-
-    rerender(
-      <CozyEventProvider instance={emitter}>
-        <TestComponent eventName="event-2" />
-      </CozyEventProvider>
-    );
-
-    expect(spyOff).toHaveBeenCalledTimes(1);
-    expect(spyOn).toHaveBeenCalledTimes(2);
-  });
-
-
-  // Tests that when the useCozyEvent hook is used outside of a CozyEventProvider, it correctly uses the global CozyEvent instance.
-  it('uses global CozyEvent instance when no provider is present', () => {
-    const mockCallback = jest.fn();
-
-    const TestComponentGlobal = () => {
-      useCozyEvent('global-test', mockCallback);
-      return <div>Global Test</div>;
-    };
-
-    render(<TestComponentGlobal />);
-
-    act(() => {
-      // Use the same instance that useCozyEvent uses internally
-      globalCozyEventInstance.emit('global-test', 'global-data');
-    });
-
-    expect(mockCallback).toHaveBeenCalledWith('global-data');
-  });
-
-
-  // Tests that the useCozyEvent hook throws an error when an empty string is provided as the event name.
-  it('handles empty string eventName', () => {
-    const TestComponentEmpty = () => {
-      useCozyEvent('', jest.fn());
-      return <div>Test</div>;
-    };
-
-    expect(() => {
-      render(
-        <CozyEventProvider instance={new CozyEvent()}>
-          <TestComponentEmpty />
-        </CozyEventProvider>
-      );
-    }).toThrow('Invalid eventName provided to useCozyEvent. It must be a non-empty string.');
-  });
-
-
-  // Tests that the useCozyEvent hook throws an error when an event name containing only whitespace is provided.
-  it('handles whitespace-only eventName', () => {
-    const TestComponentWhitespace = () => {
-      useCozyEvent('   ', jest.fn());
-      return <div>Test</div>;
-    };
-
-    expect(() => {
-      render(
-        <CozyEventProvider instance={new CozyEvent()}>
-          <TestComponentWhitespace />
-        </CozyEventProvider>
-      );
-    }).toThrow('Invalid eventName provided to useCozyEvent. It must be a non-empty string.');
-  });
-
-
-  // Tests that the callback function registered with useCozyEvent is called correctly for multiple emissions of the same event.
-  it('handles multiple event emissions', () => {
-    const mockCallback = jest.fn();
-    const emitterMulti = new CozyEvent();
-
-    const TestComponentMulti = () => {
-      useCozyEvent('multi-event', mockCallback);
-      return <div>Multi Test</div>;
-    };
-
-    render(
-      <CozyEventProvider instance={emitterMulti}>
-        <TestComponentMulti />
-      </CozyEventProvider>
-    );
-
-    act(() => {
-      emitterMulti.emit('multi-event', 'data1');
-      emitterMulti.emit('multi-event', 'data2');
-      emitterMulti.emit('multi-event', 'data3');
-    });
-
-    expect(mockCallback).toHaveBeenCalledTimes(3);
-    expect(mockCallback).toHaveBeenNthCalledWith(1, 'data1');
-    expect(mockCallback).toHaveBeenNthCalledWith(2, 'data2');
-    expect(mockCallback).toHaveBeenNthCalledWith(3, 'data3');
-  });
-
-
-  // Tests that the useCozyEvent hook throws an error when undefined is provided as the callback function.
-  it('handles undefined callback correctly', () => {
-    const TestComponentUndefined = () => {
-      useCozyEvent('test-event', undefined as any);
-      return <div>Test</div>;
-    };
-
-    expect(() => {
-      render(
-        <CozyEventProvider instance={new CozyEvent()}>
-          <TestComponentUndefined />
-        </CozyEventProvider>
-      );
-    }).toThrow('Invalid callback provided to useCozyEvent. It must be a function.');
-  });
-
-
-  // Tests that the useCozyEvent hook correctly manages subscriptions and unsubscriptions during rapid re-renders of the component.
-  it('handles rapid component updates correctly', () => {
-    const emitterRapid = new CozyEvent();
-    const mockCallback = jest.fn();
-
-    const TestComponentRapid = ({ id }: { id: number }) => {
-      useCozyEvent(`event-${id}`, mockCallback);
-      return <div>Rapid Test {id}</div>;
-    };
-
-    const { rerender } = render(
-      <CozyEventProvider instance={emitterRapid}>
-        <TestComponentRapid id={1} />
-      </CozyEventProvider>
-    );
-
-    // Rapid rerenders
-    for (let i = 2; i <= 5; i++) {
-      rerender(
-        <CozyEventProvider instance={emitterRapid}>
-          <TestComponentRapid id={i} />
-        </CozyEventProvider>
+  it('1000 components mounting and unmounting leave zero listeners', () => {
+    const e = new CozyEvent<Events>();
+    let hits = 0;
+    function Item() {
+      useCozyEvent(e, 'ping', () => {
+        hits++;
+      });
+      return null;
+    }
+    function List({ n }: { n: number }) {
+      return (
+        <>
+          {Array.from({ length: n }, (_, i) => (
+            <Item key={i} />
+          ))}
+        </>
       );
     }
-
-    act(() => {
-      emitterRapid.emit('event-5', 'final-data');
-    });
-
-    expect(mockCallback).toHaveBeenCalledWith('final-data');
-    expect(mockCallback).toHaveBeenCalledTimes(1);
+    const { rerender, unmount } = render(<List n={1000} />);
+    expect(liveCount(e, 'ping')).toBe(1000);
+    act(() => e.emit('ping', 0));
+    expect(hits).toBe(1000);
+    rerender(<List n={500} />);
+    expect(liveCount(e, 'ping')).toBe(500);
+    hits = 0;
+    act(() => e.emit('ping', 0));
+    expect(hits).toBe(500);
+    rerender(<List n={1000} />);
+    expect(liveCount(e, 'ping')).toBe(1000);
+    unmount();
+    expect(liveCount(e, 'ping')).toBe(0);
+    expect(Object.keys((e as any)._e)).toEqual([]);
+    hits = 0;
+    e.emit('ping', 0);
+    expect(hits).toBe(0);
   });
 
-
-  // Tests that the useCozyEvent hook throws an error when a non-function value (like null) is provided as the callback.
-  it('throws an error if callback is not a function', () => {
-    const TestComponentInvalidCallback = () => {
-      useCozyEvent('test-event', null);
-      return <div>Test</div>;
-    };
-
-    expect(() => {
-      render(
-        <CozyEventProvider instance={new CozyEvent()}>
-          <TestComponentInvalidCallback />
-        </CozyEventProvider>
-      );
-    }).toThrow('Invalid callback provided to useCozyEvent. It must be a function.');
+  it('a component unmounted by a listener during emit does not break the emit', () => {
+    const e = new CozyEvent<Events>();
+    const order: string[] = [];
+    function A() {
+      useCozyEvent(e, 'ping', () => order.push('A'));
+      return null;
+    }
+    function B() {
+      useCozyEvent(e, 'ping', () => order.push('B'));
+      return null;
+    }
+    function Parent() {
+      const [show, setShow] = useState(true);
+      useCozyEvent(e, 'other', () => setShow(false));
+      return show ? (
+        <>
+          <A />
+          <B />
+        </>
+      ) : null;
+    }
+    render(<Parent />);
+    act(() => e.emit('ping', 1));
+    act(() => e.emit('other', 'hide'));
+    expect(liveCount(e, 'ping')).toBe(0);
+    act(() => e.emit('ping', 2));
+    expect(order).toEqual(['A', 'B']);
   });
 
-
-  // Tests that the useCozyEvent hook throws an error if the eventName prop changes to an invalid value (like null).
-  it('throws an error if eventName changes to an invalid value', () => {
-    const emitter = new CozyEvent();
-
-    const TestComponentDynamic = ({ eventName }: { eventName: string | null }) => {
-      useCozyEvent(eventName as string, jest.fn());
-      return <div>Dynamic Test</div>;
-    };
-
-    const { rerender } = render(
-      <CozyEventProvider instance={emitter}>
-        <TestComponentDynamic eventName="valid-event" />
-      </CozyEventProvider>
-    );
-
-    expect(() => {
-      rerender(
-        <CozyEventProvider instance={emitter}>
-          <TestComponentDynamic eventName={null} />
-        </CozyEventProvider>
-      );
-    }).toThrow('Invalid eventName provided to useCozyEvent. It must be a non-empty string.');
+  it('supports event names that collide with Object.prototype and spaces', () => {
+    const e = new CozyEvent<Record<string, string>>();
+    const fn = jest.fn();
+    function C({ ev }: { ev: string }) {
+      useCozyEvent(e, ev, fn);
+      return null;
+    }
+    const { rerender, unmount } = render(<C ev="constructor" />);
+    act(() => e.emit('constructor', 'a'));
+    rerender(<C ev="__proto__" />);
+    act(() => e.emit('__proto__', 'b'));
+    rerender(<C ev="hello world" />);
+    act(() => e.emit('hello world', 'c'));
+    expect(fn.mock.calls).toEqual([['a'], ['b'], ['c']]);
+    unmount();
+    expect(Object.keys((e as any)._e)).toEqual([]);
   });
 
-
-  // Tests that the useCozyEvent hook correctly applies the provided namespace to the event name when subscribing.
-  it('correctly applies namespace to event names', () => {
-    const emitter = new CozyEvent();
-    const mockCallback = jest.fn();
-    const spyOn = jest.spyOn(emitter, 'on');
-
-    const TestComponent = () => {
-      useCozyEvent('event', mockCallback, { namespace: 'ns' });
-      return <div>Test</div>;
-    };
-
-    render(
-      <CozyEventProvider instance={emitter}>
-        <TestComponent />
-      </CozyEventProvider>
-    );
-
-    expect(spyOn).toHaveBeenCalledWith('ns:event', mockCallback);
+  it('works with a subclass emitter', () => {
+    class Bus extends CozyEvent<Events> {
+      ping(n: number) {
+        this.emit('ping', n);
+      }
+    }
+    const bus = new Bus();
+    const fn = jest.fn();
+    function C() {
+      useCozyEvent(bus, 'ping', fn);
+      return null;
+    }
+    const { unmount } = render(<C />);
+    act(() => bus.ping(3));
+    expect(fn).toHaveBeenCalledWith(3);
+    unmount();
+    expect(liveCount(bus, 'ping')).toBe(0);
   });
 
-
-  // Tests that the useCozyEvent hook returns the CozyEvent instance provided by the nearest CozyEventProvider.
-  it('returns the emitter instance from provider', () => {
-    const customEmitter = new CozyEvent();
-    let hookEmitter;
-
-    const TestComponent = () => {
-      hookEmitter = useCozyEvent('test', jest.fn());
-      return <div>Test</div>;
-    };
-
-    render(
-      <CozyEventProvider instance={customEmitter}>
-        <TestComponent />
-      </CozyEventProvider>
-    );
-
-    expect(hookEmitter).toBe(customEmitter);
-  });
-
-
-  // Tests that when no CozyEventProvider is present, the useCozyEvent hook returns the global CozyEvent instance.
-  it('returns global instance when no provider', () => {
-    let hookEmitter;
-
-    const TestComponent = () => {
-      hookEmitter = useCozyEvent('test', jest.fn());
-      return <div>Test</div>;
-    };
-
-    render(<TestComponent />);
-
-    expect(hookEmitter).toBe(globalCozyEventInstance);
-  });
-
-
-  it('throws an error if no instance is found for the given ID', () => {
-    const TestComponent = () => {
-      useCozyEvent('test-event', jest.fn(), { id: 'nonexistent-id' });
-      return <div>Test</div>;
-    };
-
-    expect(() => {
-      render(<TestComponent />);
-    }).toThrow('No CozyEvent instance found for id: nonexistent-id');
+  it('the cozyevent/react entry exports only the hook', async () => {
+    const mod = await import('cozyevent/react');
+    expect(Object.keys(mod).sort()).toEqual(['useCozyEvent']);
+    const core = await import('cozyevent');
+    expect(Object.keys(core).sort()).toEqual(['CozyEvent']);
   });
 });
-
-describe('Instance Registry', () => {
-  // Tests that the instance registry correctly registers and retrieves instances by ID.
-  it('registers and retrieves instances by ID', () => {
-    const instance1 = new CozyEvent();
-    const instance2 = new CozyEvent();
-
-    registerCozyEventInstance('instance1', instance1);
-    registerCozyEventInstance('instance2', instance2);
-
-    expect(getCozyEventInstanceById('instance1')).toBe(instance1);
-    expect(getCozyEventInstanceById('instance2')).toBe(instance2);
-  });
-
-  it('returns undefined for unregistered IDs', () => {
-    expect(getCozyEventInstanceById('nonexistent')).toBeUndefined();
-  });
-});
-
-// Helper component for testing
-const TestComponent = ({ callback }: { callback: (data: any) => void }) => {
-  useCozyEvent('dynamic-event', callback);
-  return <div>Dynamic Test</div>;
-};

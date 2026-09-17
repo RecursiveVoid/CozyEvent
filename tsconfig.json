@@ -1,21 +1,21 @@
 {
   "compilerOptions": {
-    "target": "ESNext", 
+    "target": "ES2022",
     "module": "ESNext",
-    "moduleResolution": "Node", 
-    "esModuleInterop": true, 
-    "skipLibCheck": true, 
+    "moduleResolution": "Node",
+    "lib": ["ES2022", "DOM"],
     "strict": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "importHelpers": true,
-    "noEmitHelpers": true,
-    "strictNullChecks": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "useDefineForClassFields": true,
     "jsx": "react-jsx",
-    "jsxImportSource": "react",
-    "allowSyntheticDefaultImports": true,
+    "noEmit": false,
     "declaration": false,
-    "removeComments": true,
-    "stripInternal": true,
-  }
+    "paths": {
+      "cozyevent": ["./src/index.ts"],
+      "cozyevent/react": ["./src/react/index.ts"]
+    }
+  },
+  "include": ["src"]
 }

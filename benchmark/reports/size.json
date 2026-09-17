@@ -1,0 +1,103 @@
+{
+  "node": "v22.14.0",
+  "rows": [
+    {
+      "name": "cozyevent v2",
+      "min": 976,
+      "gzip": 474,
+      "brotli": 416
+    },
+    {
+      "name": "cozyevent v1.4.2 (core class only)",
+      "min": 515,
+      "gzip": 269,
+      "brotli": 245
+    },
+    {
+      "name": "tseep",
+      "min": 18381,
+      "gzip": 3514,
+      "brotli": 3214
+    },
+    {
+      "name": "eventemitter3",
+      "min": 2958,
+      "gzip": 1112,
+      "brotli": 1004
+    },
+    {
+      "name": "eventemitter2",
+      "min": 18670,
+      "gzip": 5691,
+      "brotli": 5131
+    },
+    {
+      "name": "emitix",
+      "min": 2253,
+      "gzip": 951,
+      "brotli": 853
+    },
+    {
+      "name": "@braintree/event-emitter",
+      "min": 637,
+      "gzip": 332,
+      "brotli": 282
+    },
+    {
+      "name": "@protobufjs/eventemitter",
+      "min": 753,
+      "gzip": 391,
+      "brotli": 335
+    },
+    {
+      "name": "event-emitter",
+      "min": 4819,
+      "gzip": 1920,
+      "brotli": 1733
+    },
+    {
+      "name": "mitt",
+      "min": 339,
+      "gzip": 203,
+      "brotli": 180
+    },
+    {
+      "name": "nanoevents",
+      "min": 249,
+      "gzip": 184,
+      "brotli": 158
+    },
+    {
+      "name": "cozyevent/react (react external)",
+      "min": 150,
+      "gzip": 136,
+      "brotli": 117
+    }
+  ],
+  "dist": [
+    {
+      "name": "dist/index.js",
+      "min": 926,
+      "gzip": 448,
+      "brotli": 386
+    },
+    {
+      "name": "dist/index.cjs",
+      "min": 938,
+      "gzip": 452,
+      "brotli": 390
+    },
+    {
+      "name": "dist/react.js",
+      "min": 153,
+      "gzip": 136,
+      "brotli": 119
+    },
+    {
+      "name": "dist/react.cjs",
+      "min": 155,
+      "gzip": 134,
+      "brotli": 112
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+// cozyevent v1.4.2 core class, byte-for-byte from the published dist/index.esm.js (React parts stripped
+// because that entry imports react/jsx-runtime at top level). Used only as a benchmark baseline.
+class r{_events={};on(e,t){(this._events[e]??=[]).push(t)}once(e,t){const n=o=>{t(o),this.off(e,n)};this.on(e,n)}off(e,t){this._events[e]&&(this._events[e]=this._events[e].filter((e=>e!==t)),0===this._events[e].length&&delete this._events[e])}emit(e,t){this._events[e]?.forEach((e=>e(t)))}emitAsync(e,t){this._events[e]&&queueMicrotask((()=>{this._events[e].forEach((e=>e(t)))}))}removeAllListeners(e){e?delete this._events[e]:this._events={}}}export{r as CozyEvent};

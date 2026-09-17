@@ -1,0 +1,127 @@
+// Speed benchmark entry: `npm run benchmark`
+//
+// Runs every (library x scenario) in its own child Node process (benchmark/case.js), repeats the
+// whole matrix ROUNDS times in round-robin order (so slow drift such as thermal throttling hits
+// every library alike), and reports the median ops/s (with the rme of that median run).
+// Writes results.md and results.json into benchmark/reports (or --out).
+//
+// Options:  --rounds=3  --max-time=0.5  --libs=a,b  --scenarios=emit1,onoff
+//           --cand=<name>=<absolute path to ESM file exporting CozyEvent>   (repeatable; library 'cand:<name>')
+//           --out=<dir>  or  --out=<path/base.md|.json>  (default benchmark/reports/results.{md,json};
+//                optimizers: always pass --out so the official reports are not overwritten)
+//           --merge  (keep runs from an existing results.json at the output path for cases not re-run now)
+// Builds dist first if dist/index.js is missing.
+
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
+import { dirname, join, resolve } from 'node:path';
+import { libs } from './libs.js';
+import { scenarios } from './case.js';
+import { arg, fmt, here, list, median, runCase, setupCandidates } from './harness.js';
+
+const root = join(here, '..');
+const cands = setupCandidates();
+const ROUNDS = Number(arg('rounds', 3));
+const MAX_TIME = Number(arg('max-time', 0.5));
+const libNames = list(arg('libs')) ?? Object.keys(libs);
+const scenNames = list(arg('scenarios')) ?? Object.keys(scenarios);
+for (const l of libNames) if (!libs[l]) throw new Error(`unknown library "${l}". Known: ${Object.keys(libs).join(', ')}`);
+for (const s of scenNames) if (!scenarios[s]) throw new Error(`unknown scenario "${s}". Known: ${Object.keys(scenarios).join(', ')}`);
+
+const outArg = arg('out');
+let outBase = join(here, 'reports/results');
+if (outArg) {
+  const p = resolve(outArg);
+  outBase = /\.(md|json)$/.test(p) ? p.replace(/\.(md|json)$/, '') : join(p, 'results');
+}
+
+if (!existsSync(join(root, 'dist/index.js'))) {
+  console.error('dist missing, running npm run build');
+  const r = spawnSync('npm', ['run', 'build'], { cwd: root, stdio: 'inherit' });
+  if (r.status) process.exit(r.status);
+}
+
+const env = {
+  cpu: os.cpus()[0].model,
+  cores: os.cpus().length,
+  node: process.version,
+  v8: process.versions.v8,
+  os: `${os.type()} ${os.release()} ${os.arch()}`,
+  date: new Date().toISOString(),
+  rounds: ROUNDS,
+  maxTime: MAX_TIME,
+  candidates: cands.length ? Object.fromEntries(cands) : undefined,
+};
+
+const cases = [];
+for (const s of scenNames) for (const l of libNames) if (!libs[l].only || libs[l].only.includes(s)) cases.push([l, s]);
+
+const raw = {};
+let prevEnv;
+if (process.argv.includes('--merge') && existsSync(outBase + '.json')) {
+  const prev = JSON.parse(readFileSync(outBase + '.json', 'utf8'));
+  prevEnv = prev.env;
+  for (const [s, byLib] of Object.entries(prev.raw)) {
+    for (const [l, runs] of Object.entries(byLib)) {
+      if (libNames.includes(l) && scenNames.includes(s)) continue; // being re-measured now
+      (raw[s] ??= {})[l] = runs;
+    }
+  }
+}
+const t0 = Date.now();
+for (let r = 0; r < ROUNDS; r++) {
+  cases.forEach(([l, s], i) => {
+    const res = runCase(l, s, MAX_TIME);
+    ((raw[s] ??= {})[l] ??= []).push(res);
+    const shown = res.hz ? `${fmt(res.hz)} ops/s ±${res.rme.toFixed(2)}%` : res.skipped || res.error;
+    console.error(`[round ${r + 1}/${ROUNDS} ${i + 1}/${cases.length} ${((Date.now() - t0) / 1000).toFixed(0)}s] ${s} ${l}: ${shown}`);
+  });
+}
+
+const results = {};
+const known = Object.keys(libs);
+const allLibs = [...known, ...Object.values(raw).flatMap((b) => Object.keys(b)).filter((l) => !known.includes(l))].filter(
+  (l, i, a) => a.indexOf(l) === i && Object.values(raw).some((b) => b[l]),
+);
+const allScens = Object.keys(scenarios).filter((s) => raw[s]);
+for (const s of allScens) {
+  const rows = [];
+  for (const l of allLibs) {
+    const runs = raw[s]?.[l];
+    if (!runs) continue;
+    const m = median(runs);
+    if (!m) {
+      const why = runs.find((x) => x.skipped)?.skipped || runs.find((x) => x.error)?.error;
+      rows.push({ lib: l, hz: null, why });
+      continue;
+    }
+    rows.push({ lib: l, hz: m.hz, rme: m.rme, runs: runs.map((x) => x.hz ?? null), note: libs[l]?.note });
+  }
+  rows.sort((a, b) => (b.hz ?? -1) - (a.hz ?? -1));
+  const best = rows[0]?.hz;
+  for (const row of rows) if (row.hz) row.relative = row.hz / best;
+  results[s] = rows;
+}
+
+let md = `# CozyEvent speed benchmark\n\n`;
+md += `Environment: ${env.cpu} (${env.cores} cores), Node ${env.node} (V8 ${env.v8}), ${env.os}. `;
+md += `Each library x scenario ran in its own process, ${ROUNDS} rounds (round-robin), benchmark.js maxTime ${MAX_TIME}s; the table shows the median run. Higher is better.\n\n`;
+md += `Generated by \`node benchmark/run.js\` on ${env.date}${prevEnv ? ` (merged with runs from ${prevEnv.date})` : ''}.\n`;
+if (cands.length) md += `\nCandidates: ${cands.map(([n, p]) => `cand:${n} = ${p}`).join('; ')}.\n`;
+md += `\nFairness: every library's own on/off/once/emit is called directly on the instance (no wrapper). Libraries without once (@braintree/event-emitter, @protobufjs/eventemitter, mitt, nanoevents) use the textbook userland once; nanoevents removes via the unbind function returned by on(). "same code" scenarios use closures of one function; "distinct" scenarios use different functions (polymorphic call sites). See benchmark/libs.js.\n`;
+for (const s of allScens) {
+  md += `\n## ${scenarios[s]} (\`${s}\`)\n\n| # | library | ops/s | ±rme | vs fastest |\n|---|---|--:|--:|--:|\n`;
+  let i = 0;
+  for (const r of results[s]) {
+    if (r.hz) md += `| ${++i} | ${r.lib}${r.note ? ` (${r.note})` : ''} | ${fmt(r.hz)} | ${r.rme.toFixed(2)}% | ${(r.relative * 100).toFixed(1)}% |\n`;
+  }
+  const skipped = results[s].filter((r) => !r.hz);
+  if (skipped.length) md += `\nNot measured: ${skipped.map((r) => `${r.lib} (${r.why})`).join(', ')}.\n`;
+}
+
+mkdirSync(dirname(outBase), { recursive: true });
+writeFileSync(outBase + '.md', md);
+writeFileSync(outBase + '.json', JSON.stringify({ env, mergedFrom: prevEnv, results, raw }, null, 2));
+console.log(md);
+console.error(`wrote ${outBase}.{md,json}; done in ${((Date.now() - t0) / 1000).toFixed(0)}s`);

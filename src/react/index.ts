@@ -1,0 +1,1 @@
+export { useCozyEvent } from './useCozyEvent';

@@ -1,4 +1,1 @@
-src/
-dist/core/
-dist/react/
-benchmark/
+# Publishing is controlled by the "files" whitelist in package.json.
