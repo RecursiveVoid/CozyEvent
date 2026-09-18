@@ -91,7 +91,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/RecursiveVoid/CozyEvent.git"
+    "url": "git+https://github.com/RecursiveVoid/CozyEvent.git"
   },
   "devDependencies": {
     "@braintree/event-emitter": "^2.0.2",
