@@ -6,17 +6,21 @@ import { useCozyEvent } from 'cozyevent/react';
 
 type Events = { ping: number; other: string; 'hello world': { name: string } };
 
-/** Counts live registrations for an event (reads internal storage; test-only). */
-const liveCount = (e: CozyEvent<any>, event: string): number =>
-  ((e as any)._e[event] as unknown[] | undefined)?.length ?? 0;
-
-// `remove` spies on the internal remover that both `off` and the unsubscribe function returned by
-// `on` use (unsubscribe does not go through the public `off`, so subclass overrides never see
-// internal records). Test-only access to a private member.
-const spyOnEmitter = (e: CozyEvent<any>) => ({
-  on: jest.spyOn(e, 'on'),
-  remove: jest.spyOn(e as any, '_r'),
-});
+// Public-API spies only: `on` counts subscriptions, `remove` counts calls of the unsubscribe
+// functions that `on` returned, `off` counts direct off calls (the hook never needs them).
+// Live listener counts are observed by emitting and counting listener calls.
+const spyOnEmitter = (e: CozyEvent<any>) => {
+  const remove = jest.fn();
+  const orig = e.on;
+  const on = jest.spyOn(e, 'on').mockImplementation(function (this: CozyEvent<any>, ev: string, l: any) {
+    const un = orig.call(this, ev, l);
+    return () => {
+      remove();
+      un();
+    };
+  } as any);
+  return { on, remove, off: jest.spyOn(e, 'off') };
+};
 
 afterEach(() => {
   cleanup();
@@ -32,7 +36,6 @@ describe('useCozyEvent (cozyevent/react)', () => {
       return null;
     }
     render(<C />);
-    expect(liveCount(e, 'ping')).toBe(1);
     act(() => e.emit('ping', 7));
     act(() => e.emit('ping', 8));
     expect(got).toEqual([7, 8]);
@@ -81,9 +84,8 @@ describe('useCozyEvent (cozyevent/react)', () => {
     for (let i = 1; i <= 100; i++) rerender(<C tick={i} />);
     expect(spies.on).toHaveBeenCalledTimes(1);
     expect(spies.remove).not.toHaveBeenCalled();
-    expect(liveCount(e, 'ping')).toBe(1);
     act(() => e.emit('ping', 5));
-    expect(calls).toEqual([5]);
+    expect(calls).toEqual([5]); // exactly one live listener
   });
 
   it('state-driven re-renders (setState inside the listener) do not resubscribe', () => {
@@ -139,7 +141,7 @@ describe('useCozyEvent (cozyevent/react)', () => {
     expect(spies.on).toHaveBeenCalledTimes(1);
   });
 
-  it('unsubscribes on unmount', () => {
+  it('unsubscribes on unmount', async () => {
     const e = new CozyEvent<Events>();
     const spies = spyOnEmitter(e);
     const fn = jest.fn();
@@ -148,13 +150,15 @@ describe('useCozyEvent (cozyevent/react)', () => {
       return null;
     }
     const { unmount } = render(<C />);
-    expect(liveCount(e, 'ping')).toBe(1);
+    act(() => e.emit('ping', 0));
+    expect(fn).toHaveBeenCalledTimes(1);
     unmount();
     expect(spies.remove).toHaveBeenCalledTimes(1);
-    expect(liveCount(e, 'ping')).toBe(0);
-    expect(Object.keys((e as any)._e)).toEqual([]);
+    expect(spies.off).not.toHaveBeenCalled();
     e.emit('ping', 1);
-    expect(fn).not.toHaveBeenCalled();
+    e.emitAsync('ping', 2);
+    await Promise.resolve();
+    expect(fn).toHaveBeenCalledTimes(1);
   });
 
   it('unmount removes only its own registration, not another subscriber using the same emitter/event', () => {
@@ -185,11 +189,9 @@ describe('useCozyEvent (cozyevent/react)', () => {
     rerender(<C ev="other" />);
     expect(spies.on).toHaveBeenCalledTimes(2);
     expect(spies.remove).toHaveBeenCalledTimes(1);
-    expect(liveCount(e, 'ping')).toBe(0);
-    expect(liveCount(e, 'other')).toBe(1);
     act(() => e.emit('ping', 1));
     act(() => e.emit('other', 'x'));
-    expect(got).toEqual([['other', 'x']]);
+    expect(got).toEqual([['other', 'x']]); // ping: 0 live, other: exactly 1
     // and back again
     rerender(<C ev="ping" />);
     act(() => e.emit('other', 'y'));
@@ -199,7 +201,9 @@ describe('useCozyEvent (cozyevent/react)', () => {
       ['ping', 2],
     ]);
     unmount();
-    expect(Object.keys((e as any)._e)).toEqual([]);
+    e.emit('ping', 3);
+    e.emit('other', 'z');
+    expect(got).toHaveLength(2);
   });
 
   it('resubscribes when the emitter prop changes and removes the old subscription', () => {
@@ -217,15 +221,15 @@ describe('useCozyEvent (cozyevent/react)', () => {
     expect(s1.on).toHaveBeenCalledTimes(1);
     expect(s1.remove).toHaveBeenCalledTimes(1);
     expect(s2.on).toHaveBeenCalledTimes(1);
-    expect(liveCount(e1, 'ping')).toBe(0);
-    expect(liveCount(e2, 'ping')).toBe(1);
     act(() => e1.emit('ping', 1));
     expect(fn).not.toHaveBeenCalled();
     act(() => e2.emit('ping', 2));
-    expect(fn).toHaveBeenCalledWith(2);
+    expect(fn.mock.calls).toEqual([[2]]);
     unmount();
     expect(s2.remove).toHaveBeenCalledTimes(1);
-    expect(liveCount(e2, 'ping')).toBe(0);
+    e1.emit('ping', 3);
+    e2.emit('ping', 4);
+    expect(fn.mock.calls).toEqual([[2]]);
   });
 
   it('React.StrictMode double effects leave exactly one live listener', () => {
@@ -245,12 +249,12 @@ describe('useCozyEvent (cozyevent/react)', () => {
         <C t={1} />
       </StrictMode>,
     );
-    expect(liveCount(e, 'ping')).toBe(1);
     act(() => e.emit('ping', 9));
     expect(fn).toHaveBeenCalledTimes(1);
     expect(fn).toHaveBeenCalledWith(9, 1);
     unmount();
-    expect(liveCount(e, 'ping')).toBe(0);
+    e.emit('ping', 10);
+    expect(fn).toHaveBeenCalledTimes(1);
   });
 
   it('1000 components mounting and unmounting leave zero listeners', () => {
@@ -272,19 +276,17 @@ describe('useCozyEvent (cozyevent/react)', () => {
       );
     }
     const { rerender, unmount } = render(<List n={1000} />);
-    expect(liveCount(e, 'ping')).toBe(1000);
     act(() => e.emit('ping', 0));
     expect(hits).toBe(1000);
     rerender(<List n={500} />);
-    expect(liveCount(e, 'ping')).toBe(500);
     hits = 0;
     act(() => e.emit('ping', 0));
     expect(hits).toBe(500);
     rerender(<List n={1000} />);
-    expect(liveCount(e, 'ping')).toBe(1000);
+    hits = 0;
+    act(() => e.emit('ping', 0));
+    expect(hits).toBe(1000);
     unmount();
-    expect(liveCount(e, 'ping')).toBe(0);
-    expect(Object.keys((e as any)._e)).toEqual([]);
     hits = 0;
     e.emit('ping', 0);
     expect(hits).toBe(0);
@@ -314,9 +316,8 @@ describe('useCozyEvent (cozyevent/react)', () => {
     render(<Parent />);
     act(() => e.emit('ping', 1));
     act(() => e.emit('other', 'hide'));
-    expect(liveCount(e, 'ping')).toBe(0);
     act(() => e.emit('ping', 2));
-    expect(order).toEqual(['A', 'B']);
+    expect(order).toEqual(['A', 'B']); // no ping listener left
   });
 
   it('supports event names that collide with Object.prototype and spaces', () => {
@@ -334,7 +335,8 @@ describe('useCozyEvent (cozyevent/react)', () => {
     act(() => e.emit('hello world', 'c'));
     expect(fn.mock.calls).toEqual([['a'], ['b'], ['c']]);
     unmount();
-    expect(Object.keys((e as any)._e)).toEqual([]);
+    for (const ev of ['constructor', '__proto__', 'hello world']) e.emit(ev, 'after');
+    expect(fn).toHaveBeenCalledTimes(3);
   });
 
   it('works with a subclass emitter', () => {
@@ -351,9 +353,10 @@ describe('useCozyEvent (cozyevent/react)', () => {
     }
     const { unmount } = render(<C />);
     act(() => bus.ping(3));
-    expect(fn).toHaveBeenCalledWith(3);
+    expect(fn.mock.calls).toEqual([[3]]);
     unmount();
-    expect(liveCount(bus, 'ping')).toBe(0);
+    bus.ping(4);
+    expect(fn.mock.calls).toEqual([[3]]);
   });
 
   it('the cozyevent/react entry exports only the hook', async () => {

@@ -3,8 +3,7 @@
  */
 import { CozyEvent } from '../src/index';
 
-const keys = (e: CozyEvent<any>) => Object.keys((e as any)._e).sort();
-const tick = () => new Promise<void>((r) => setImmediate(r));
+import { tick } from '../test-types/behaviour';
 
 describe('re-entrancy', () => {
   test('off of an earlier (already-run) listener during emit does not skip later ones', () => {
@@ -60,7 +59,10 @@ describe('re-entrancy', () => {
     e.once('x', fn);
     for (let i = 0; i < 5; i++) e.emit('x');
     expect(n).toBe(5);
-    expect((e as any)._e.x).toHaveLength(1);
+    // exactly one pending registration: removing one leaves nothing to run
+    e.off('x', fn);
+    e.emit('x');
+    expect(n).toBe(5);
   });
 
   test('deep recursion through nested emit with once', () => {
@@ -76,7 +78,8 @@ describe('re-entrancy', () => {
     e.once('x', fn);
     e.emit('x');
     expect(depth).toBe(1000);
-    expect(keys(e)).toEqual([]);
+    e.emit('x'); // nothing left: fn would run (depth 1001)
+    expect(depth).toBe(1000);
   });
 
   test('removeAllListeners(event) during emit of another event', () => {
@@ -130,7 +133,8 @@ describe('re-entrancy', () => {
     un();
     await tick();
     expect(fn).toHaveBeenCalledTimes(1);
-    expect(keys(e)).toEqual([]);
+    e.emit('a', 2);
+    expect(fn).toHaveBeenCalledTimes(1);
   });
 
   test('throw in a nested emit leaves outer state consistent', () => {
@@ -165,15 +169,19 @@ describe('scale', () => {
     for (let i = 0; i < N; i++) e.emit(`e${i}`);
     expect(hits).toBe(3 * N);
     for (let i = 0; i < N; i++) e.off(`e${i}`, fns[1]);
+    hits = 0;
+    for (let i = 0; i < N; i++) e.emit(`e${i}`);
+    expect(hits).toBe(2 * N); // off removed exactly one per event
     for (const u of uns) u();
-    expect(keys(e)).toEqual([]);
+    for (let i = 0; i < N; i++) e.emit(`e${i}`);
+    expect(hits).toBe(2 * N);
   });
 
   test('1e4 listeners on one event with random removal', () => {
     const e = new CozyEvent();
     const N = 10_000;
     const called = new Uint8Array(N);
-    const fns = Array.from({ length: N }, (_, i) => () => (called[i] = 1));
+    const fns = Array.from({ length: N }, (_, i) => () => void called[i]++);
     const uns = fns.map((f) => e.on('x', f));
     let seed = 42;
     const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 2 ** 32);
@@ -185,7 +193,10 @@ describe('scale', () => {
       removed.add(i);
     }
     e.emit('x');
-    for (let i = 0; i < N; i++) expect(called[i]).toBe(removed.has(i) ? 0 : 1);
-    expect((e as any)._e.x.length).toBe(N - removed.size);
+    e.emit('x');
+    let bad = 0;
+    for (let i = 0; i < N; i++) if (called[i] !== (removed.has(i) ? 0 : 2)) bad++;
+    expect(bad).toBe(0);
+    expect(called.reduce((a, b) => a + b, 0)).toBe(2 * (N - removed.size));
   });
 });

@@ -3,9 +3,9 @@
   "rows": [
     {
       "name": "cozyevent v2",
-      "min": 976,
-      "gzip": 474,
-      "brotli": 416
+      "min": 1241,
+      "gzip": 456,
+      "brotli": 411
     },
     {
       "name": "cozyevent v1.4.2 (core class only)",
@@ -77,15 +77,15 @@
   "dist": [
     {
       "name": "dist/index.js",
-      "min": 926,
-      "gzip": 448,
-      "brotli": 386
+      "min": 1191,
+      "gzip": 430,
+      "brotli": 378
     },
     {
       "name": "dist/index.cjs",
-      "min": 938,
-      "gzip": 452,
-      "brotli": 390
+      "min": 1203,
+      "gzip": 434,
+      "brotli": 382
     },
     {
       "name": "dist/react.js",

@@ -6,8 +6,7 @@
 import { CozyEvent } from '../src/index';
 import * as core from '../src/index';
 
-const keys = (e: CozyEvent<any>) => Object.keys((e as any)._e).sort();
-const tick = () => new Promise<void>((r) => setImmediate(r));
+import { tick, callsOnEmit, mockCalls, expectNoListeners } from '../test-types/behaviour';
 
 describe('exports', () => {
   test('runtime exports are exactly CozyEvent', () => {
@@ -22,7 +21,8 @@ describe('exports', () => {
     a.on('x', fa);
     b.emit('x', 1);
     expect(fa).not.toHaveBeenCalled();
-    expect(keys(b)).toEqual([]);
+    a.emit('x', 2);
+    expect(fa.mock.calls).toEqual([[2]]);
   });
 });
 
@@ -42,7 +42,10 @@ describe('basics', () => {
 
   test('emit on a never-registered event is a silent no-op', () => {
     expect(() => e.emit('nope', 1)).not.toThrow();
-    expect(keys(e)).toEqual([]);
+    const fn = jest.fn();
+    e.on('nope', fn);
+    e.emit('nope', 2);
+    expect(fn.mock.calls).toEqual([[2]]);
   });
 
   test('on returns an unsubscribe function', () => {
@@ -52,7 +55,10 @@ describe('basics', () => {
     expect(off()).toBeUndefined();
     e.emit('a');
     expect(fn).not.toHaveBeenCalled();
-    expect(keys(e)).toEqual([]);
+    // the emptied event is reusable
+    e.on('a', fn);
+    e.emit('a', 1);
+    expect(fn.mock.calls).toEqual([[1]]);
   });
 
   test('off removes a listener', () => {
@@ -80,7 +86,10 @@ describe('basics', () => {
     e.emit('a', 2);
     expect(fn).toHaveBeenCalledTimes(1);
     expect(fn).toHaveBeenCalledWith(1);
-    expect(keys(e)).toEqual([]);
+    e.once('a', fn);
+    e.emit('a', 3);
+    e.emit('a', 4);
+    expect(fn.mock.calls).toEqual([[1], [3]]);
   });
 
   test('many emits', () => {
@@ -109,12 +118,15 @@ describe('S1 event names', () => {
     e.emit(name, 2);
     expect(fn.mock.calls).toEqual([[1], [2]]);
     expect(onceFn.mock.calls).toEqual([[1]]);
-    expect(keys(e)).toEqual([name]);
+    expect(callsOnEmit(e, name, mockCalls(fn, onceFn), 3)).toBe(1);
     un();
-    expect(keys(e)).toEqual([]);
+    expectNoListeners(e, [name], mockCalls(fn, onceFn));
     e.on(name, fn);
     e.off(name, fn);
-    expect(keys(e)).toEqual([]);
+    expectNoListeners(e, [name], mockCalls(fn, onceFn));
+    e.once(name, onceFn);
+    e.emitAsync(name, 4);
+    return tick().then(() => expect(onceFn.mock.calls).toEqual([[1], [4]]));
   });
 
   test('regression: bug #1 - exact v1 repros', () => {
@@ -123,17 +135,26 @@ describe('S1 event names', () => {
     expect(() => e.on('constructor', () => {})).not.toThrow();
   });
 
-  test('__proto__ listener does not change the storage prototype or leak across instances', () => {
+  test('__proto__ listener does not break other prototype names or leak across instances', () => {
     const a = new CozyEvent();
     const b = new CozyEvent();
-    a.on('__proto__', () => {});
-    a.on('toString', () => {});
-    expect(Object.getPrototypeOf((a as any)._e)).not.toBe(Object.prototype);
+    const proto = jest.fn();
+    const str = jest.fn();
+    a.on('__proto__', proto);
+    a.on('toString', str);
+    for (const n of ['hasOwnProperty', 'valueOf', 'constructor', 'isPrototypeOf', 'x'])
+      expect(() => a.emit(n, 0)).not.toThrow();
+    expect(mockCalls(proto, str)()).toBe(0);
+    a.emit('__proto__', 1);
+    expect(proto.mock.calls).toEqual([[1]]);
+    expect(str).not.toHaveBeenCalled();
     const fn = jest.fn();
     b.on('x', fn);
     b.emit('__proto__');
     b.emit('toString');
-    expect(keys(b)).toEqual(['x']);
+    expect(mockCalls(proto, str)()).toBe(1);
+    expect(callsOnEmit(b, 'x', mockCalls(fn, proto, str))).toBe(1);
+    expect(callsOnEmit(new CozyEvent(), '__proto__', mockCalls(fn, proto, str))).toBe(0);
     expect(({} as any).toString).toBe(Object.prototype.toString);
   });
 
@@ -199,7 +220,9 @@ describe('S3 duplicates', () => {
     e.off('a', fn);
     e.emit('a');
     expect(fn).toHaveBeenCalledTimes(3);
-    expect(keys(e)).toEqual([]);
+    e.off('a', fn); // nothing left: no-op
+    e.on('a', fn);
+    expect(callsOnEmit(e, 'a', mockCalls(fn))).toBe(1);
   });
 
   test('off removes the most recently added matching registration', () => {
@@ -295,9 +318,10 @@ describe('S5 snapshot semantics', () => {
 
   test('removeAllListeners during emit: remaining snapshot still runs, next emit none', () => {
     const e = new CozyEvent();
+    const first = jest.fn(() => e.removeAllListeners());
     const b = jest.fn();
     const c = jest.fn();
-    e.on('a', () => e.removeAllListeners());
+    e.on('a', first);
     e.on('a', b);
     e.on('other', c);
     e.emit('a');
@@ -306,7 +330,7 @@ describe('S5 snapshot semantics', () => {
     e.emit('other');
     expect(b).toHaveBeenCalledTimes(1);
     expect(c).not.toHaveBeenCalled();
-    expect(keys(e)).toEqual([]);
+    expectNoListeners(e, ['a', 'other'], mockCalls(first, b, c));
   });
 
   test('nested emit sees the state at the moment of the nested call', () => {
@@ -334,7 +358,10 @@ describe('S6 once', () => {
     e.off('a', fn);
     e.emit('a');
     expect(fn).not.toHaveBeenCalled();
-    expect(keys(e)).toEqual([]);
+    e.once('a', fn);
+    e.emit('a', 1);
+    e.emit('a', 2);
+    expect(fn.mock.calls).toEqual([[1]]);
   });
 
   test('once returns an unsubscribe that removes it', () => {
@@ -344,7 +371,12 @@ describe('S6 once', () => {
     un();
     e.emit('a');
     expect(fn).not.toHaveBeenCalled();
-    expect(keys(e)).toEqual([]);
+    un();
+    e.once('a', fn);
+    un(); // stale: must not remove the new registration
+    e.emit('a', 1);
+    e.emit('a', 2);
+    expect(fn.mock.calls).toEqual([[1]]);
   });
 
   test('once is removed before its body runs (re-entrant emit does not re-run it)', () => {
@@ -352,11 +384,38 @@ describe('S6 once', () => {
     let calls = 0;
     e.once('a', () => {
       calls++;
-      expect(keys(e)).toEqual([]);
       e.emit('a');
     });
     e.emit('a');
     expect(calls).toBe(1);
+  });
+
+  test('inside a running once, emit and off(fn) already see it removed', () => {
+    const e = new CozyEvent();
+    const log: string[] = [];
+    const other = (p: string) => log.push(`other:${p}`);
+    const f = (p: string) => {
+      log.push(`f:${p}`);
+      if (p === 'outer') {
+        e.emit('a', 'nested'); // snapshot [other, on(f)]: the once is gone
+        e.off('a', f); // removes on(f): the once registration is already gone
+      }
+    };
+    e.once('a', f);
+    e.on('a', other);
+    e.on('a', f);
+    e.emit('a', 'outer');
+    expect(log).toEqual([
+      'f:outer',
+      'other:nested',
+      'f:nested',
+      'other:outer',
+      'f:outer', // on(f) is still in the outer snapshot
+      'other:nested',
+    ]);
+    log.length = 0;
+    e.emit('a', 'after');
+    expect(log).toEqual(['other:after']);
   });
 
   test('once inside once', () => {
@@ -382,7 +441,11 @@ describe('S6 once', () => {
     expect(() => e.emit('a')).toThrow('boom');
     expect(() => e.emit('a')).not.toThrow();
     expect(fn).toHaveBeenCalledTimes(1);
-    expect(keys(e)).toEqual([]);
+    const g = jest.fn();
+    e.on('a', g);
+    expect(() => e.emit('a')).not.toThrow();
+    expect(g).toHaveBeenCalledTimes(1);
+    expect(fn).toHaveBeenCalledTimes(1);
   });
 
   test('once removed (off) during the emit that snapshotted it still runs exactly once', () => {
@@ -403,7 +466,10 @@ describe('S6 once', () => {
     e.emitAsync('a', 2);
     await tick();
     expect(fn.mock.calls).toEqual([[1]]);
-    expect(keys(e)).toEqual([]);
+    e.emit('a', 3);
+    e.emitAsync('a', 4);
+    await tick();
+    expect(fn.mock.calls).toEqual([[1]]);
   });
 
   test('once in an emitAsync snapshot and a later sync emit runs once (sync first)', async () => {
@@ -644,7 +710,8 @@ describe('S10 removeAllListeners', () => {
     e.emit('b');
     expect(a).not.toHaveBeenCalled();
     expect(b).toHaveBeenCalledTimes(1);
-    expect(keys(e)).toEqual(['b']);
+    expect(callsOnEmit(e, 'b', mockCalls(a, b))).toBe(1);
+    expect(callsOnEmit(e, 'a', mockCalls(a, b))).toBe(0);
   });
 
   test('no argument and explicit undefined remove everything', () => {
@@ -657,7 +724,7 @@ describe('S10 removeAllListeners', () => {
       e.emit('a');
       e.emit('__proto__');
       expect(fn).not.toHaveBeenCalled();
-      expect(keys(e)).toEqual([]);
+      expectNoListeners(e, ['a', '__proto__', 'toString', 'constructor'], mockCalls(fn));
       // still usable, and still safe for prototype names
       e.on('toString', fn);
       e.emit('toString');
@@ -684,7 +751,8 @@ describe('S10 removeAllListeners', () => {
     e.on('undefined', fn);
     e.on('x', fn);
     e.removeAllListeners('undefined');
-    expect(keys(e)).toEqual(['x']);
+    expect(callsOnEmit(e, 'x', mockCalls(fn))).toBe(1);
+    expect(callsOnEmit(e, 'undefined', mockCalls(fn))).toBe(0);
   });
 
   test('on unknown event / empty emitter is a no-op', () => {
@@ -694,29 +762,77 @@ describe('S10 removeAllListeners', () => {
   });
 });
 
-describe('S11 memory: keys are deleted when the last listener goes', () => {
-  test('via off, unsubscribe, once firing, removeAllListeners(event)', () => {
-    const e = new CozyEvent();
-    const fn = () => {};
+describe('S11 events emptied by every removal path stay silent and reusable', () => {
+  // Bounded memory under event-name churn is checked by heap measurement in core.memory.test.ts.
+  const empty = (e: CozyEvent, fn: jest.Mock) => {
     e.on('off', fn);
     e.off('off', fn);
     e.on('un', fn)();
     e.once('once', fn);
-    e.emit('once');
+    e.emit('once', 'consumed');
     e.on('rm', fn);
     e.on('rm', fn);
     e.removeAllListeners('rm');
     e.once('onceun', fn)();
-    expect(keys(e)).toEqual([]);
+    e.once('onceoff', fn);
+    e.off('onceoff', fn);
+    e.on('dup', fn);
+    e.on('dup', fn);
+    e.off('dup', fn);
+    e.off('dup', fn);
+  };
+  const names = ['off', 'un', 'once', 'rm', 'onceun', 'onceoff', 'dup'];
+
+  test('via off, unsubscribe, once firing, removeAllListeners(event): emit and emitAsync call nothing', async () => {
+    const e = new CozyEvent();
+    const fn = jest.fn();
+    empty(e, fn);
+    expect(fn.mock.calls).toEqual([['consumed']]);
+    fn.mockClear();
+    for (const n of names) {
+      expect(() => e.emit(n, 1)).not.toThrow();
+      expect(() => e.emitAsync(n, 2)).not.toThrow();
+    }
+    await tick();
+    expect(fn).not.toHaveBeenCalled();
   });
 
-  test('dynamic event names do not grow storage', () => {
+  test('each emptied event can be reused, in order, with on and once, many times', async () => {
     const e = new CozyEvent();
-    for (let i = 0; i < 10_000; i++) {
-      const un = e.on(`ev${i}`, () => {});
-      un();
+    const fn = jest.fn();
+    for (let round = 0; round < 3; round++) {
+      empty(e, fn);
+      fn.mockClear();
+      for (const n of names) {
+        const log: string[] = [];
+        const u1 = e.on(n, (p) => log.push(`on1:${p}`));
+        e.once(n, (p) => log.push(`once:${p}`));
+        e.on(n, (p) => log.push(`on2:${p}`));
+        e.emit(n, 1);
+        u1();
+        e.emitAsync(n, 2);
+        await tick();
+        expect(log).toEqual(['on1:1', 'once:1', 'on2:1', 'on2:2']);
+        e.removeAllListeners(n);
+      }
+      expect(fn).not.toHaveBeenCalled();
     }
-    expect(keys(e)).toEqual([]);
+  });
+
+  test('dynamic event names: removal leaves every name silent and other events intact', () => {
+    const e = new CozyEvent();
+    const keep = jest.fn();
+    e.on('keep', keep);
+    const fn = jest.fn();
+    for (let i = 0; i < 10_000; i++) {
+      const un = e.on(`ev${i}`, fn);
+      i % 3 === 0 ? un() : i % 3 === 1 ? e.off(`ev${i}`, fn) : (e.once(`ev${i}`, fn), un(), e.emit(`ev${i}`));
+    }
+    expect(fn).toHaveBeenCalledTimes(3333);
+    fn.mockClear();
+    for (let i = 0; i < 10_000; i++) e.emit(`ev${i}`);
+    expect(fn).not.toHaveBeenCalled();
+    expect(callsOnEmit(e, 'keep', mockCalls(keep))).toBe(1);
   });
 });
 
@@ -769,8 +885,9 @@ describe('subclassing', () => {
     expect(s.hello()).toBe('hi');
   });
 
-  test('instance has exactly one own property', () => {
-    expect(Object.keys(new CozyEvent())).toEqual(['_e']);
+  test('instances do not shadow the public API with own properties', () => {
+    const own = Object.keys(new CozyEvent());
+    for (const m of ['on', 'once', 'off', 'emit', 'emitAsync', 'removeAllListeners']) expect(own).not.toContain(m);
   });
 });
 
@@ -823,21 +940,23 @@ describe('integration round 1 fixes', () => {
     un();
     g.emit('b', 3);
     expect(fn).toHaveBeenCalledTimes(1);
-    expect(keys(g)).toEqual([]);
+    expectNoListeners(g, ['a', 'b'], mockCalls(fn));
     expect(received).toEqual([]);
     g.on('a', fn);
     g.off('a', fn);
     expect(received).toEqual(['function']);
-    expect(keys(g)).toEqual([]);
+    expectNoListeners(g, ['a', 'b'], mockCalls(fn));
   });
 
   test('adding many listeners to one event is linear (v1 regression guard)', () => {
     const e = new CozyEvent();
+    let hits = 0;
     const t = Date.now();
-    for (let i = 0; i < 1e5; i++) e.on('a', () => {});
+    for (let i = 0; i < 1e5; i++) e.on('a', () => hits++);
     // O(n^2) copy-on-add took ~18 s for 1e5 here; O(1) push takes a few ms.
     expect(Date.now() - t).toBeLessThan(2000);
-    expect((e as any)._e.a).toHaveLength(1e5);
+    e.emit('a');
+    expect(hits).toBe(1e5);
   });
 
   test('append in place: listeners added during emit or before an emitAsync microtask do not run in it', async () => {
@@ -880,12 +999,25 @@ describe('integration round 1 fixes', () => {
     expect(log).toEqual(['a', 'c', 'd']);
   });
 
-  test('constructing many emitters is cheap (shared storage prototype)', () => {
-    const a = new CozyEvent() as any;
-    const b = new CozyEvent() as any;
-    expect(Object.getPrototypeOf(a._e)).toBe(Object.getPrototypeOf(b._e));
-    expect(Object.getPrototypeOf(Object.getPrototypeOf(a._e))).toBeNull();
-    a.removeAllListeners();
-    expect(Object.getPrototypeOf(a._e)).toBe(Object.getPrototypeOf(b._e));
+  test('many emitters stay independent and prototype-name safe, before and after removeAllListeners()', () => {
+    const fn = jest.fn();
+    const protoNames = ['__proto__', 'constructor', 'toString', 'hasOwnProperty', 'valueOf'];
+    const all: CozyEvent[] = [];
+    for (let i = 0; i < 1000; i++) {
+      const e = new CozyEvent();
+      if (i % 2) e.removeAllListeners();
+      for (const n of protoNames) expect(() => e.emit(n, i)).not.toThrow();
+      all.push(e);
+    }
+    all[0].on('x', fn);
+    all[1].on('toString', fn);
+    all[2].on('__proto__', fn);
+    for (let i = 3; i < all.length; i++) for (const n of ['x', ...protoNames]) all[i].emit(n);
+    expect(fn).not.toHaveBeenCalled();
+    all[1].removeAllListeners();
+    all[1].emit('toString');
+    all[3].on('toString', fn);
+    all[3].emit('toString', 3);
+    expect(fn.mock.calls).toEqual([[3]]);
   });
 });

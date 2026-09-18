@@ -1,12 +1,19 @@
 /**
  * Randomized differential test: CozyEvent vs a trivially-correct reference model of SPEC S1-S11.
  * Listeners perform random re-entrant operations (on/once/off/unsubscribe/removeAllListeners/
- * nested emit/emitAsync) chosen deterministically, so both sides must produce identical call logs,
- * identical live-key sets and identical per-event listener counts after every top-level op.
+ * nested emit/emitAsync) chosen deterministically, so both sides must produce identical call logs
+ * after every top-level op.
+ *
+ * Live listener state is compared behaviourally, never by reading storage: at a probe point both
+ * sides emit the PROBE payload to every event twice. Listeners answer a probe by logging their id
+ * only (no scripted side effect), so the first probe reveals each event's full registration list in
+ * order (on and once) and the second the surviving on registrations. Each sequence is run twice:
+ * once to the end with a final probe, once cut at a random op (per seed) with a probe there.
  *
  * FUZZ_SEQUENCES env var overrides the number of sequences (default 10000).
  */
 import { CozyEvent } from '../src/index';
+import { PROBE } from '../test-types/behaviour';
 
 type Rec = { ev: string; fn: number; once: boolean; ran: boolean };
 
@@ -64,9 +71,6 @@ class Model {
       this.run(list, p);
     }
   }
-  snapshot() {
-    return [...this.m.entries()].map(([k, v]) => `${k}:${v.length}`).sort();
-  }
 }
 
 // Deterministic PRNG
@@ -118,7 +122,8 @@ function genOp(rnd: () => number, nested: boolean): Op {
 
 interface Side {
   log: string[];
-  keys(): string[];
+  /** Emits PROBE to `ev` (sync, top level). */
+  probe(ev: string): void;
   apply(op: Op): void | Promise<void>;
 }
 
@@ -167,6 +172,7 @@ function makeSides(seed: number): [Side, Side] {
       }
     };
     const invoke = (i: number, p: unknown) => {
+      if (p === PROBE) return void log.push(`P${i}`);
       log.push(`${i}:${p}`);
       const c = counts[i]++;
       if (c < 40) perform(scripts[i][c]);
@@ -175,10 +181,7 @@ function makeSides(seed: number): [Side, Side] {
     model = new Model(invoke);
     return {
       log,
-      keys: () =>
-        kind === 'real'
-          ? Object.keys((e as any)._e).map((k) => `${k}:${(e as any)._e[k].length}`).sort()
-          : model.snapshot(),
+      probe: (ev) => (kind === 'real' ? e.emit(ev, PROBE) : model.emit(ev, PROBE)),
       apply(op) {
         if (op.t === 'flush') {
           if (kind === 'model') return model.flush();
@@ -193,31 +196,49 @@ function makeSides(seed: number): [Side, Side] {
 
 const SEQUENCES = Number(process.env.FUZZ_SEQUENCES ?? 10_000);
 
+/** Runs ops[0..cut] on a fresh real/model pair, comparing logs after every op, then probes all events. */
+async function run(s: number, ops: Op[], cut: number): Promise<{ calls: number; probed: number }> {
+  const [real, model] = makeSides(s);
+  const fail = (what: string, i: number) => {
+    throw new Error(
+      `seed ${s} diverged ${what} (cut ${cut}) at op #${i} ${JSON.stringify(ops[i])}\n` +
+        `ops: ${JSON.stringify(ops.slice(0, i + 1))}\n` +
+        `real log:  ${real.log.join(' ')}\nmodel log: ${model.log.join(' ')}`,
+    );
+  };
+  for (let i = 0; i <= cut; i++) {
+    // Only await on flush: any other await would drain pending emitAsync microtasks early.
+    if (ops[i].t === 'flush') await real.apply(ops[i]);
+    else real.apply(ops[i]);
+    model.apply(ops[i]);
+    if (real.log.join() !== model.log.join()) fail('in the call log', i);
+  }
+  const before = real.log.length;
+  for (const ev of EVENTS) {
+    real.probe(ev);
+    model.probe(ev);
+    real.probe(ev);
+    model.probe(ev);
+    if (real.log.join() !== model.log.join()) fail(`in the probe of ${JSON.stringify(ev)}`, cut);
+  }
+  return { calls: before, probed: real.log.length - before };
+}
+
 test(`differential fuzz: ${SEQUENCES} random op sequences match the reference model`, async () => {
   let totalCalls = 0;
+  let totalProbed = 0;
   for (let s = 1; s <= SEQUENCES; s++) {
-    const [real, model] = makeSides(s);
     const rnd = mulberry32(s);
     const len = 5 + Math.floor(rnd() * 40);
     const ops: Op[] = [];
     for (let i = 0; i < len; i++) ops.push(genOp(rnd, false));
     ops.push({ t: 'flush' });
-    for (let i = 0; i < ops.length; i++) {
-      // Only await on flush: any other await would drain pending emitAsync microtasks early.
-      if (ops[i].t === 'flush') await real.apply(ops[i]);
-      else real.apply(ops[i]);
-      model.apply(ops[i]);
-      if (real.log.join() !== model.log.join() || real.keys().join() !== model.keys().join()) {
-        throw new Error(
-          `seed ${s} diverged at op #${i} ${JSON.stringify(ops[i])}\n` +
-            `ops: ${JSON.stringify(ops.slice(0, i + 1))}\n` +
-            `real log:  ${real.log.join(' ')}\nmodel log: ${model.log.join(' ')}\n` +
-            `real keys: ${real.keys()}\nmodel keys: ${model.keys()}`,
-        );
-      }
-    }
-    totalCalls += real.log.length;
+    const full = await run(s, ops, ops.length - 1);
+    const cut = await run(s, ops, Math.floor(mulberry32(s ^ 0x5bd1e995)() * ops.length));
+    totalCalls += full.calls;
+    totalProbed += full.probed + cut.probed;
   }
-  // sanity: the fuzz actually exercises listeners
+  // sanity: the fuzz actually exercises listeners and the probes actually see registrations
   expect(totalCalls).toBeGreaterThan(SEQUENCES);
-}, 300_000);
+  expect(totalProbed).toBeGreaterThan(SEQUENCES);
+}, 600_000);

@@ -62,8 +62,8 @@ function typeChecks() {
   // internals are private
   // @ts-expect-error private storage
   e._e;
-  // @ts-expect-error private helper
-  e._a;
+  // @ts-expect-error private name of the last emptied event
+  e._k;
   // @ts-expect-error private remover
   e._r;
   // @ts-expect-error protected type-only marker

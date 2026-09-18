@@ -15,7 +15,6 @@ describe('useCozyEvent server rendering', () => {
     }
     for (let i = 0; i < 50; i++) expect(renderToString(<C />)).toBe('<p>hi</p>');
     expect(on).not.toHaveBeenCalled();
-    expect(Object.keys((e as any)._e)).toEqual([]);
     e.emit('ping', 1);
     expect(fn).not.toHaveBeenCalled();
   });

@@ -408,7 +408,7 @@ Listeners get a single `payload` argument, as in v1. Extra arguments passed to `
 
 v1 stored listeners in `this._events`. That was never public API, and v2 does not have it. If a subclass read `_events`, keep track of the listeners yourself instead.
 
-v2 reserves four internal names: `_e` (listener storage), `_a` and `_r` (private helpers) and `_T` (a type-only marker that emits no JavaScript). A subclass must not define members with those names. TypeScript reports an error if you redeclare one.
+v2 reserves four internal names: `_e` (listener storage), `_k` (the name of the event emptied last) and `_r` (a private helper) and `_T` (a type-only marker that emits no JavaScript). A subclass must not define members with those names. TypeScript reports an error if you redeclare one.
 
 ### `this` inside listeners
 
@@ -437,5 +437,5 @@ v1 accepted a per-call generic like `on<T>(...)`/`emit<T>(...)`. Those generics 
 - [ ] Replace `getCozyEventInstanceById` / `registerCozyEventInstance` with exported emitters.
 - [ ] Remove uses of `CozyEventContext`, and stop using the return value of `useCozyEvent`.
 - [ ] Check any code that calls `off` expecting it to remove duplicate registrations, or that calls `removeAllListeners('')`.
-- [ ] Remove any access to `_events`, and make sure subclasses do not define `_e`, `_a`, `_r` or `_T`.
+- [ ] Remove any access to `_events`, and make sure subclasses do not define `_e`, `_k`, `_r` or `_T`.
 - [ ] Make sure no listener relies on `this`.

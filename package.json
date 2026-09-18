@@ -1,7 +1,7 @@
 {
   "name": "cozyevent",
   "version": "2.0.0",
-  "description": "Tiny (448 B min+gzip), fast, fully typed event emitter (sync + microtask async) with an optional one-hook React binding. Zero dependencies.",
+  "description": "Tiny (430 B min+gzip), fast, fully typed event emitter (sync + microtask async) with an optional one-hook React binding. Zero dependencies.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
